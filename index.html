@@ -179,13 +179,13 @@
 
   /* 우상단 액션 버튼(음악·공유) — 동일 레이아웃 */
   #topActions{position:fixed;top:calc(14px + env(safe-area-inset-top));right:14px;z-index:60;
-    display:flex;align-items:center;gap:8px;}
+    display:flex;flex-direction:column;align-items:center;gap:8px;}
   .actbtn{display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;
     background:var(--gold);color:#20140a;
-    width:38px;height:38px;padding:0;border-radius:50%;box-shadow:0 4px 14px rgba(0,0,0,.28);
+    width:32px;height:32px;padding:0;border-radius:50%;box-shadow:0 4px 14px rgba(0,0,0,.28);
     font-family:inherit;}
   .actbtn:active{transform:scale(.94);}
-  .actbtn svg{width:17px;height:17px;}
+  .actbtn svg{width:14px;height:14px;}
   #musicBtn .ic-off{display:none;}
   #musicBtn.muted .ic-on{display:none;}
   #musicBtn.muted .ic-off{display:block;}
@@ -399,22 +399,23 @@
       events:{
         onReady:function(e){ ytReady=true; e.target.setVolume(0); startMusic(); }, // 준비되는 즉시 재생 시도(브라우저가 막으면 첫 탭에 시작)
         onStateChange:function(e){
-          if(e.data===YT.PlayerState.PLAYING && !fadedIn){ fadedIn=true; fadeInMusic(YT_VOL); } // 실제 재생 시작 시 2초 페이드인
+          if(e.data===YT.PlayerState.PLAYING && !fadedIn){ fadedIn=true; try{e.target.setVolume(0);}catch(_){}; fadeVol(YT_VOL,2000); } // 실제 재생 시작 시 2초 페이드인
           if(e.data===YT.PlayerState.ENDED){ e.target.seekTo(YT_START,true); e.target.playVideo(); }
         }
       }
     });
   };
-  // 볼륨 0 → target 을 2초에 걸쳐 서서히 올림
-  function fadeInMusic(target){
+  // 현재 볼륨 → target 으로 ms 동안 서서히 이동, 끝나면 done() 호출
+  function fadeVol(target, ms, done){
     if(!ytPlayer) return;
     clearInterval(fadeTimer);
-    var stepMs=80, steps=Math.round(2000/stepMs), n=0;
-    try{ ytPlayer.setVolume(0); }catch(_){}
+    var start; try{ start=ytPlayer.getVolume(); }catch(_){ start=0; }
+    if(typeof start!=='number') start=0;
+    var stepMs=60, steps=Math.max(1,Math.round(ms/stepMs)), n=0, diff=target-start;
     fadeTimer=setInterval(function(){
-      n++; var v=Math.min(target, target*n/steps);
-      try{ ytPlayer.setVolume(v); }catch(_){}
-      if(n>=steps) clearInterval(fadeTimer);
+      n++; var v=start + diff*n/steps;
+      try{ ytPlayer.setVolume(Math.max(0,Math.min(100,v))); }catch(_){}
+      if(n>=steps){ clearInterval(fadeTimer); if(done) done(); }
     }, stepMs);
   }
   function updateMusicBtn(){ var b=document.getElementById('musicBtn'); if(b) b.classList.toggle('muted', !musicOn); }
@@ -426,9 +427,14 @@
     if(e){ e.stopPropagation(); e.preventDefault(); }
     if(!ytReady){ wantPlay=true; return; }
     var playing = (ytPlayer.getPlayerState()===1); // 1 = playing
-    if(musicOn && playing){ ytPlayer.mute(); musicOn=false; }
-    else { ytPlayer.unMute(); ytPlayer.setVolume(fadedIn?YT_VOL:0); ytPlayer.playVideo(); musicOn=true; } // 재생 중이 아니면 강제 재생(제스처 내); 아직 페이드 전이면 0에서 시작해 페이드인
-    updateMusicBtn();
+    if(musicOn && playing){ // 끄기: 페이드아웃 후 음소거
+      musicOn=false; updateMusicBtn();
+      fadeVol(0, 800, function(){ try{ ytPlayer.mute(); }catch(_){} });
+    } else { // 켜기: 페이드인
+      musicOn=true; fadedIn=true; updateMusicBtn();
+      try{ ytPlayer.unMute(); ytPlayer.setVolume(0); if(!playing) ytPlayer.playVideo(); }catch(_){}
+      fadeVol(YT_VOL, 800);
+    }
   }
   // 브라우저 자동재생 정책상 첫 사용자 제스처 때 재생 시작 (음악 버튼 탭은 제외)
   function firstGesture(e){
