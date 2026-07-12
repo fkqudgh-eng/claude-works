@@ -388,19 +388,17 @@
     }
   }
 
-  // --- 배경음악 (YouTube IFrame API, 10초부터 재생·반복) ---
-  var ytPlayer, ytReady=false, wantPlay=false, musicOn=true;
+  // --- 배경음악 (YouTube IFrame API): 무음 자동재생 → 첫 터치에 음소거 해제(페이드인) ---
+  var ytPlayer, ytReady=false, soundOn=false, musicOn=true, fadeTimer=null;
   var YT_VIDEO='7efa5dpDYDM', YT_START=14, YT_VOL=20;
-  var fadedIn=false, fadeTimer=null;
   window.onYouTubeIframeAPIReady=function(){
     ytPlayer=new YT.Player('ytplayer',{
       videoId:YT_VIDEO,
-      playerVars:{autoplay:1,controls:0,start:YT_START,playsinline:1,rel:0,modestbranding:1,fs:0},
+      playerVars:{autoplay:1,mute:1,controls:0,start:YT_START,playsinline:1,rel:0,modestbranding:1,fs:0},
       events:{
-        onReady:function(e){ ytReady=true; e.target.setVolume(0); startMusic(); }, // 준비되는 즉시 재생 시도(브라우저가 막으면 첫 탭에 시작)
+        onReady:function(e){ ytReady=true; try{ e.target.mute(); e.target.setVolume(YT_VOL); e.target.playVideo(); }catch(_){} }, // 로드 즉시 '무음' 자동재생 (브라우저 허용)
         onStateChange:function(e){
-          if(e.data===YT.PlayerState.PLAYING){ stopGestureWatch(); if(!fadedIn){ fadedIn=true; try{e.target.setVolume(0);}catch(_){}; fadeVol(YT_VOL,2000); } } // 실제 재생 시작 시 제스처 감시 해제 + 2초 페이드인
-          if(e.data===YT.PlayerState.ENDED){ e.target.seekTo(YT_START,true); e.target.playVideo(); }
+          if(e.data===YT.PlayerState.ENDED){ e.target.seekTo(YT_START,true); e.target.playVideo(); } // 반복
         }
       }
     });
@@ -419,28 +417,29 @@
     }, stepMs);
   }
   function updateMusicBtn(){ var b=document.getElementById('musicBtn'); if(b) b.classList.toggle('muted', !musicOn); }
-  function startMusic(){
-    if(!ytReady){ wantPlay=true; return; }
-    try{ ytPlayer.unMute(); ytPlayer.playVideo(); musicOn=true; updateMusicBtn(); }catch(_){}
+  // 음소거 해제 + 페이드인 — 첫 사용자 터치나 음악 버튼에서 호출(반드시 제스처 안에서)
+  function enableSound(){
+    if(!ytReady) return; // 플레이어 준비 전이면 무시 → 제스처 리스너 유지, 다음 터치에서 재시도
+    try{ ytPlayer.unMute(); ytPlayer.setVolume(0); if(ytPlayer.getPlayerState()!==1) ytPlayer.playVideo(); }catch(_){}
+    soundOn=true; musicOn=true; updateMusicBtn();
+    fadeVol(YT_VOL, 1500);
+    stopGestureWatch();
   }
   function toggleMusic(e){
     if(e){ e.stopPropagation(); e.preventDefault(); }
-    if(!ytReady){ wantPlay=true; return; }
-    var playing = (ytPlayer.getPlayerState()===1); // 1 = playing
-    if(musicOn && playing){ // 끄기: 페이드아웃 후 음소거
+    if(!ytReady) return;
+    var playing = (ytPlayer.getPlayerState()===1);
+    if(soundOn && musicOn && playing){ // 끄기: 페이드아웃 후 음소거
       musicOn=false; updateMusicBtn();
       fadeVol(0, 800, function(){ try{ ytPlayer.mute(); }catch(_){} });
     } else { // 켜기: 페이드인
-      musicOn=true; fadedIn=true; updateMusicBtn();
-      try{ ytPlayer.unMute(); ytPlayer.setVolume(0); if(!playing) ytPlayer.playVideo(); }catch(_){}
-      fadeVol(YT_VOL, 800);
+      enableSound();
     }
   }
-  // 브라우저 자동재생 정책상 첫 사용자 제스처 때 재생 시작 (음악 버튼 탭은 제외)
+  // 무음으로 자동재생 중이므로, 첫 사용자 터치(넘기기 아니어도 됨) 순간 음소거만 풀어 바로 소리가 남 (음악 버튼 탭 제외)
   function firstGesture(e){
     if(e && e.target && e.target.closest && e.target.closest('#musicBtn')) return;
-    if(!ytReady){ wantPlay=true; return; } // 플레이어 준비 전이면 리스너 유지 → 다음 탭에서 재시도
-    startMusic(); // 실제 재생(PLAYING) 확인되면 stopGestureWatch()로 리스너 제거
+    enableSound();
   }
   function stopGestureWatch(){
     document.removeEventListener('pointerdown', firstGesture, true);
