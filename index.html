@@ -172,7 +172,7 @@
   @keyframes bob{0%,100%{transform:translateY(0);opacity:.8}50%{transform:translateY(5px);opacity:.45}}
 
   /* nav zones */
-  .zone{position:fixed;top:0;bottom:0;width:34%;z-index:20;}
+  .zone{position:fixed;top:0;bottom:0;width:34%;z-index:20;pointer-events:none;}
   #prev{left:0;} #next{right:0;width:66%;}
 
   #shareBtn{position:fixed;top:calc(14px + env(safe-area-inset-top));right:14px;z-index:60;
@@ -329,8 +329,11 @@
   function next(){ if(cur<N-1) go(cur+1); }
   function prev(){ if(cur>0) go(cur-1); }
 
-  document.getElementById('next').addEventListener('click', next);
-  document.getElementById('prev').addEventListener('click', prev);
+  // 화면 탭 내비게이션 — 오버레이 존이 버튼(처음부터 보기/공유) 클릭을 가로채지 않도록 문서 레벨에서 처리
+  document.addEventListener('click', function(e){
+    if(e.target.closest('#shareBtn, .restart2, button, a')) return; // 컨트롤 클릭은 넘김 처리 제외
+    if(e.clientX < window.innerWidth * 0.34) prev(); else next();
+  });
   document.addEventListener('keydown', function(e){
     if(e.key==='ArrowRight'||e.key===' ') next();
     if(e.key==='ArrowLeft') prev();
@@ -350,7 +353,7 @@
   }
   function shareInvite(e){
     if(e){ e.stopPropagation(); e.preventDefault(); }
-    var url = location.href.split('#')[0];
+    var url = 'https://tinyurl.com/hyosung-share';
     var data = {
       title: '2026 효성교회 청년부 하계 수련회',
       text: '강하고 담대하라 · 여호수아 1:9\n2026.7.23~25 필그림 하우스',
