@@ -189,6 +189,15 @@
     padding:10px 18px;border-radius:22px;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;
     white-space:nowrap;}
   #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  #musicBtn{position:fixed;top:calc(14px + env(safe-area-inset-top));left:14px;z-index:60;
+    width:38px;height:38px;border:none;cursor:pointer;border-radius:50%;
+    background:rgba(24,44,34,.5);color:#fff;font-size:16px;line-height:1;
+    display:flex;align-items:center;justify-content:center;
+    -webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);
+    box-shadow:0 4px 14px rgba(0,0,0,.28);font-family:inherit;}
+  #musicBtn:active{transform:scale(.94);}
+  /* 숨김 유튜브 오디오 플레이어 (display:none은 일부 브라우저에서 재생 중단되므로 화면 밖으로) */
+  #ytwrap{position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;}
 </style>
 </head>
 <body>
@@ -300,6 +309,8 @@
 <button id="shareBtn" onclick="shareInvite(event)" aria-label="공유">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.7" x2="15.4" y2="6.3"/><line x1="8.6" y1="13.3" x2="15.4" y2="17.7"/></svg>공유</button>
 <div id="toast"></div>
+<button id="musicBtn" onclick="toggleMusic(event)" aria-label="배경음악 켜기/끄기">🔊</button>
+<div id="ytwrap"><div id="ytplayer"></div></div>
 <div class="zone" id="prev"></div>
 <div class="zone" id="next"></div>
 
@@ -375,7 +386,44 @@
     }
   }
 
+  // --- 배경음악 (YouTube IFrame API, 10초부터 재생·반복) ---
+  var ytPlayer, ytReady=false, wantPlay=false, musicOn=true;
+  var YT_VIDEO='8uD2gza3fHA', YT_START=14;
+  window.onYouTubeIframeAPIReady=function(){
+    ytPlayer=new YT.Player('ytplayer',{
+      videoId:YT_VIDEO,
+      playerVars:{autoplay:0,controls:0,start:YT_START,playsinline:1,rel:0,modestbranding:1,fs:0},
+      events:{
+        onReady:function(e){ ytReady=true; e.target.setVolume(40); if(wantPlay) startMusic(); },
+        onStateChange:function(e){ if(e.data===YT.PlayerState.ENDED){ e.target.seekTo(YT_START,true); e.target.playVideo(); } }
+      }
+    });
+  };
+  function updateMusicBtn(){ var b=document.getElementById('musicBtn'); if(b) b.textContent = musicOn ? '🔊' : '🔇'; }
+  function startMusic(){
+    if(!ytReady){ wantPlay=true; return; }
+    try{ ytPlayer.unMute(); ytPlayer.setVolume(40); ytPlayer.playVideo(); musicOn=true; updateMusicBtn(); }catch(_){}
+  }
+  function toggleMusic(e){
+    if(e){ e.stopPropagation(); e.preventDefault(); }
+    if(!ytReady){ wantPlay=true; return; }
+    var playing = (ytPlayer.getPlayerState()===1); // 1 = playing
+    if(musicOn && playing){ ytPlayer.mute(); musicOn=false; }
+    else { ytPlayer.unMute(); ytPlayer.setVolume(40); ytPlayer.playVideo(); musicOn=true; } // 재생 중이 아니면 강제 재생(제스처 내)
+    updateMusicBtn();
+  }
+  // 브라우저 자동재생 정책상 첫 사용자 제스처 때 재생 시작 (음악 버튼 탭은 제외)
+  function firstGesture(e){
+    if(e && e.target && e.target.closest && e.target.closest('#musicBtn')) return;
+    startMusic();
+    document.removeEventListener('pointerdown', firstGesture, true);
+    document.removeEventListener('touchstart', firstGesture, true);
+  }
+  document.addEventListener('pointerdown', firstGesture, true);
+  document.addEventListener('touchstart', firstGesture, true);
+
   render();
 </script>
+<script src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>
