@@ -180,12 +180,12 @@
   /* 우상단 액션 버튼(음악·공유) — 동일 레이아웃 */
   #topActions{position:fixed;top:calc(14px + env(safe-area-inset-top));right:14px;z-index:60;
     display:flex;align-items:center;gap:8px;}
-  .actbtn{display:flex;align-items:center;gap:6px;border:none;cursor:pointer;
-    background:var(--gold);color:#20140a;font-weight:800;font-size:13px;letter-spacing:.02em;
-    padding:9px 14px;border-radius:24px;box-shadow:0 4px 14px rgba(0,0,0,.28);
+  .actbtn{display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;
+    background:var(--gold);color:#20140a;
+    width:38px;height:38px;padding:0;border-radius:50%;box-shadow:0 4px 14px rgba(0,0,0,.28);
     font-family:inherit;}
-  .actbtn:active{transform:scale(.95);}
-  .actbtn svg{width:15px;height:15px;}
+  .actbtn:active{transform:scale(.94);}
+  .actbtn svg{width:17px;height:17px;}
   #musicBtn .ic-off{display:none;}
   #musicBtn.muted .ic-on{display:none;}
   #musicBtn.muted .ic-off{display:block;}
@@ -307,9 +307,9 @@
 <div id="topActions">
   <button id="musicBtn" class="actbtn" onclick="toggleMusic(event)" aria-label="배경음악 켜기/끄기">
     <svg class="ic-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19.5 6a8 8 0 0 1 0 12"/></svg>
-    <svg class="ic-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><line x1="16" y1="9.5" x2="21" y2="14.5"/><line x1="21" y1="9.5" x2="16" y2="14.5"/></svg>음악</button>
+    <svg class="ic-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><line x1="16" y1="9.5" x2="21" y2="14.5"/><line x1="21" y1="9.5" x2="16" y2="14.5"/></svg></button>
   <button id="shareBtn" class="actbtn" onclick="shareInvite(event)" aria-label="공유">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.7" x2="15.4" y2="6.3"/><line x1="8.6" y1="13.3" x2="15.4" y2="17.7"/></svg>공유</button>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.7" x2="15.4" y2="6.3"/><line x1="8.6" y1="13.3" x2="15.4" y2="17.7"/></svg></button>
 </div>
 <div id="toast"></div>
 <div id="ytwrap"><div id="ytplayer"></div></div>
@@ -390,28 +390,44 @@
 
   // --- 배경음악 (YouTube IFrame API, 10초부터 재생·반복) ---
   var ytPlayer, ytReady=false, wantPlay=false, musicOn=true;
-  var YT_VIDEO='8uD2gza3fHA', YT_START=14;
+  var YT_VIDEO='8uD2gza3fHA', YT_START=14, YT_VOL=40;
+  var fadedIn=false, fadeTimer=null;
   window.onYouTubeIframeAPIReady=function(){
     ytPlayer=new YT.Player('ytplayer',{
       videoId:YT_VIDEO,
       playerVars:{autoplay:1,controls:0,start:YT_START,playsinline:1,rel:0,modestbranding:1,fs:0},
       events:{
-        onReady:function(e){ ytReady=true; e.target.setVolume(40); startMusic(); }, // 준비되는 즉시 재생 시도(브라우저가 막으면 첫 탭에 시작)
-        onStateChange:function(e){ if(e.data===YT.PlayerState.ENDED){ e.target.seekTo(YT_START,true); e.target.playVideo(); } }
+        onReady:function(e){ ytReady=true; e.target.setVolume(0); startMusic(); }, // 준비되는 즉시 재생 시도(브라우저가 막으면 첫 탭에 시작)
+        onStateChange:function(e){
+          if(e.data===YT.PlayerState.PLAYING && !fadedIn){ fadedIn=true; fadeInMusic(YT_VOL); } // 실제 재생 시작 시 2초 페이드인
+          if(e.data===YT.PlayerState.ENDED){ e.target.seekTo(YT_START,true); e.target.playVideo(); }
+        }
       }
     });
   };
+  // 볼륨 0 → target 을 2초에 걸쳐 서서히 올림
+  function fadeInMusic(target){
+    if(!ytPlayer) return;
+    clearInterval(fadeTimer);
+    var stepMs=80, steps=Math.round(2000/stepMs), n=0;
+    try{ ytPlayer.setVolume(0); }catch(_){}
+    fadeTimer=setInterval(function(){
+      n++; var v=Math.min(target, target*n/steps);
+      try{ ytPlayer.setVolume(v); }catch(_){}
+      if(n>=steps) clearInterval(fadeTimer);
+    }, stepMs);
+  }
   function updateMusicBtn(){ var b=document.getElementById('musicBtn'); if(b) b.classList.toggle('muted', !musicOn); }
   function startMusic(){
     if(!ytReady){ wantPlay=true; return; }
-    try{ ytPlayer.unMute(); ytPlayer.setVolume(40); ytPlayer.playVideo(); musicOn=true; updateMusicBtn(); }catch(_){}
+    try{ ytPlayer.unMute(); ytPlayer.playVideo(); musicOn=true; updateMusicBtn(); }catch(_){}
   }
   function toggleMusic(e){
     if(e){ e.stopPropagation(); e.preventDefault(); }
     if(!ytReady){ wantPlay=true; return; }
     var playing = (ytPlayer.getPlayerState()===1); // 1 = playing
     if(musicOn && playing){ ytPlayer.mute(); musicOn=false; }
-    else { ytPlayer.unMute(); ytPlayer.setVolume(40); ytPlayer.playVideo(); musicOn=true; } // 재생 중이 아니면 강제 재생(제스처 내)
+    else { ytPlayer.unMute(); ytPlayer.setVolume(fadedIn?YT_VOL:0); ytPlayer.playVideo(); musicOn=true; } // 재생 중이 아니면 강제 재생(제스처 내); 아직 페이드 전이면 0에서 시작해 페이드인
     updateMusicBtn();
   }
   // 브라우저 자동재생 정책상 첫 사용자 제스처 때 재생 시작 (음악 버튼 탭은 제외)
