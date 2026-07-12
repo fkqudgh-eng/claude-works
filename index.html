@@ -35,7 +35,9 @@
   .slide{position:absolute;inset:0;opacity:0;visibility:hidden;
     transition:opacity .55s ease;display:flex;flex-direction:column;
     justify-content:center;padding:48px 26px calc(46px + env(safe-area-inset-bottom));}
-  .slide.active{opacity:1;visibility:visible;}
+  .slide.active{opacity:1;visibility:visible;z-index:2;}
+  /* 나가는 슬라이드를 불투명하게 아래에 유지 → 크로스페이드 중 deck 베이지 배경이 비쳐 번쩍이는 것 방지 */
+  .slide.under{opacity:1;visibility:visible;z-index:1;transition:none;}
   .slide.photo{padding:0;justify-content:flex-end;}
 
   /* entrance animations */
@@ -303,7 +305,7 @@
 
 <script>
   var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
-  var N = slides.length, cur = 0;
+  var N = slides.length, cur = 0, prevCur = -1;
   var barsEl = document.getElementById('bars');
   var darkSet = {}; // slides with light bg -> dark bars
   slides.forEach(function(s,i){
@@ -316,7 +318,10 @@
   var bars = Array.prototype.slice.call(barsEl.children);
 
   function render(){
-    slides.forEach(function(s,i){ s.classList.toggle('active', i===cur); });
+    slides.forEach(function(s,i){
+      s.classList.toggle('active', i===cur);
+      s.classList.toggle('under', i===prevCur && i!==cur); // 직전 슬라이드는 아래에 불투명 유지
+    });
     bars.forEach(function(b,i){
       b.classList.toggle('dark', !!darkSet[cur]);
       b.classList.toggle('done', i<cur);
@@ -324,6 +329,7 @@
       b.querySelector('i').style.width = (i<=cur? '100%':'0');
     });
     document.getElementById('hint').style.display = (cur===0? 'block':'none');
+    prevCur = cur;
   }
   function go(i){ cur = Math.max(0, Math.min(N-1, i)); render(); }
   function next(){ if(cur<N-1) go(cur+1); }
