@@ -399,7 +399,7 @@
       events:{
         onReady:function(e){ ytReady=true; e.target.setVolume(0); startMusic(); }, // 준비되는 즉시 재생 시도(브라우저가 막으면 첫 탭에 시작)
         onStateChange:function(e){
-          if(e.data===YT.PlayerState.PLAYING && !fadedIn){ fadedIn=true; try{e.target.setVolume(0);}catch(_){}; fadeVol(YT_VOL,2000); } // 실제 재생 시작 시 2초 페이드인
+          if(e.data===YT.PlayerState.PLAYING){ stopGestureWatch(); if(!fadedIn){ fadedIn=true; try{e.target.setVolume(0);}catch(_){}; fadeVol(YT_VOL,2000); } } // 실제 재생 시작 시 제스처 감시 해제 + 2초 페이드인
           if(e.data===YT.PlayerState.ENDED){ e.target.seekTo(YT_START,true); e.target.playVideo(); }
         }
       }
@@ -439,12 +439,17 @@
   // 브라우저 자동재생 정책상 첫 사용자 제스처 때 재생 시작 (음악 버튼 탭은 제외)
   function firstGesture(e){
     if(e && e.target && e.target.closest && e.target.closest('#musicBtn')) return;
-    startMusic();
+    if(!ytReady){ wantPlay=true; return; } // 플레이어 준비 전이면 리스너 유지 → 다음 탭에서 재시도
+    startMusic(); // 실제 재생(PLAYING) 확인되면 stopGestureWatch()로 리스너 제거
+  }
+  function stopGestureWatch(){
     document.removeEventListener('pointerdown', firstGesture, true);
     document.removeEventListener('touchstart', firstGesture, true);
+    document.removeEventListener('click', firstGesture, true);
   }
   document.addEventListener('pointerdown', firstGesture, true);
   document.addEventListener('touchstart', firstGesture, true);
+  document.addEventListener('click', firstGesture, true);
 
   render();
 </script>
