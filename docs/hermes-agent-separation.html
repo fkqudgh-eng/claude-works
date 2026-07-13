@@ -183,6 +183,55 @@
   .svg-sub { font-family: var(--font-sans); }
   .svg-lbl { font-family: var(--font-mono); font-weight: 600; }
 
+  /* ---- failure handling ---- */
+  .fail-head { margin-top: 40px; }
+  .fail-title {
+    font-size: 18px; font-weight: 700; margin: 0;
+    display: inline-flex; align-items: center; gap: 10px;
+  }
+  .fail-title::before {
+    content: ""; width: 20px; height: 2px; background: var(--bad); display: inline-block; border-radius: 2px;
+  }
+  .fail-lede { margin: 10px 0 0; color: var(--ink-soft); font-size: 14px; max-width: 76ch; }
+  .g-gate { color: var(--spec); font-weight: 700; }
+  .g-reg { color: var(--bad); font-weight: 700; }
+  .fail-grid { margin-top: 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 860px) { .fail-grid { grid-template-columns: 1fr; } }
+  .fcard {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 18px 18px 16px; border-top: 3px solid var(--accent);
+    display: flex; flex-direction: column;
+  }
+  .fcard.impl { --accent: var(--impl); --tint: var(--impl-tint); }
+  .fcard.spec { --accent: var(--spec); --tint: var(--spec-tint); }
+  .fcard.bad  { --accent: var(--bad);  --tint: color-mix(in srgb, var(--bad) 12%, transparent); }
+  .fc-top { display: flex; align-items: center; gap: 9px; }
+  .fc-tag {
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; font-weight: 700;
+    color: var(--accent); background: var(--tint); padding: 3px 7px; border-radius: 5px;
+  }
+  .fc-id { font-family: var(--font-mono); font-weight: 700; font-size: 16px; color: var(--accent); }
+  .fc-when { margin-top: 12px; font-size: 13.5px; font-weight: 600; color: var(--ink); line-height: 1.4; }
+  .fc-when span { font-weight: 400; color: var(--ink-faint); font-size: 12px; }
+  .fc-do { list-style: none; margin: 13px 0 0; padding: 0; display: grid; gap: 7px; }
+  .fc-do li { position: relative; padding-left: 16px; font-size: 13px; color: var(--ink-soft); line-height: 1.4; }
+  .fc-do li::before { content: ""; position: absolute; left: 2px; top: 8px; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+  .fc-do b { color: var(--ink); }
+  .fc-foot {
+    margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line);
+    font-family: var(--font-mono); font-size: 11px; color: var(--ink-soft);
+  }
+  .fc-k { color: var(--accent); font-weight: 700; }
+  .fc-sep { color: var(--line); margin: 0 4px; }
+  .fail-rules { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 10px 22px; }
+  .fail-rules .fr {
+    font-size: 13px; color: var(--ink-soft); position: relative; padding-left: 20px;
+  }
+  .fail-rules .fr::before {
+    content: "⛔"; position: absolute; left: 0; top: 0; font-size: 12px; filter: grayscale(0.2);
+  }
+  .fail-rules b { color: var(--ink); }
+
   /* ---- role cards ---- */
   .roles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
   @media (max-width: 860px) { .roles { grid-template-columns: 1fr; } }
@@ -421,7 +470,7 @@
     </div>
 
     <div class="schematic">
-      <svg viewBox="0 0 960 380" role="img" aria-label="GOAL_LOOP 상태머신: exec, test, verify, eval을 거쳐 개선 여부를 분기한다">
+      <svg viewBox="0 0 960 314" role="img" aria-label="GOAL_LOOP 상태머신: exec→test→verify→eval 통과 시 승격, test·verify 게이트 실패와 eval 회귀는 각각 되먹임 레인으로 재실행된다">
         <defs>
           <marker id="lr" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
             <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/>
@@ -432,82 +481,154 @@
           <marker id="lb" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7.5" markerHeight="7.5" orient="auto-start-reverse">
             <path d="M0,0 L10,5 L0,10 z" fill="var(--bad)"/>
           </marker>
+          <marker id="li" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--impl)"/>
+          </marker>
+          <marker id="ls" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--spec)"/>
+          </marker>
         </defs>
 
-        <!-- main chain arrows -->
-        <line x1="182" y1="176" x2="226" y2="176" stroke="var(--ink-soft)" stroke-width="1.8" marker-end="url(#lr)"/>
-        <line x1="372" y1="176" x2="416" y2="176" stroke="var(--ink-soft)" stroke-width="1.8" marker-end="url(#lr)"/>
-        <line x1="576" y1="176" x2="620" y2="176" stroke="var(--ink-soft)" stroke-width="1.8" marker-end="url(#lr)"/>
-        <line x1="762" y1="176" x2="792" y2="176" stroke="var(--ink-soft)" stroke-width="1.8" marker-end="url(#lr)"/>
+        <!-- pass arrows (✓ 통과) -->
+        <line x1="160" y1="118" x2="202" y2="118" stroke="var(--ink-soft)" stroke-width="1.8" marker-end="url(#lr)"/>
+        <line x1="326" y1="118" x2="368" y2="118" stroke="var(--ink-soft)" stroke-width="1.8" marker-end="url(#lr)"/>
+        <line x1="514" y1="118" x2="556" y2="118" stroke="var(--ink-soft)" stroke-width="1.8" marker-end="url(#lr)"/>
+        <line x1="680" y1="118" x2="738" y2="118" stroke="var(--ink-soft)" stroke-width="1.8" marker-end="url(#lr)"/>
+        <text class="svg-lbl" x="181" y="108" text-anchor="middle" font-size="10.5" fill="var(--good)">✓</text>
+        <text class="svg-lbl" x="347" y="108" text-anchor="middle" font-size="10.5" fill="var(--good)">✓</text>
+        <text class="svg-lbl" x="535" y="108" text-anchor="middle" font-size="10.5" fill="var(--good)">✓</text>
 
-        <!-- stage: exec -->
+        <!-- stages -->
         <g>
-          <rect x="42" y="146" width="140" height="60" rx="11" fill="var(--impl-tint)" stroke="var(--impl)" stroke-width="1.6"/>
-          <text class="svg-id" x="112" y="172" text-anchor="middle" font-size="14" fill="var(--impl)">exec</text>
-          <text class="svg-sub" x="112" y="191" text-anchor="middle" font-size="11" fill="var(--ink-soft)">impl 이 실행</text>
+          <rect x="42" y="90" width="116" height="56" rx="11" fill="var(--impl-tint)" stroke="var(--impl)" stroke-width="1.6"/>
+          <text class="svg-id" x="100" y="115" text-anchor="middle" font-size="14" fill="var(--impl)">exec</text>
+          <text class="svg-sub" x="100" y="133" text-anchor="middle" font-size="10.5" fill="var(--ink-soft)">impl 실행</text>
         </g>
-        <!-- stage: test -->
         <g>
-          <rect x="232" y="146" width="140" height="60" rx="11" fill="var(--impl-tint)" stroke="var(--impl)" stroke-width="1.6"/>
-          <text class="svg-id" x="302" y="172" text-anchor="middle" font-size="14" fill="var(--impl)">test</text>
-          <text class="svg-sub" x="302" y="191" text-anchor="middle" font-size="11" fill="var(--ink-soft)">유닛 셀프테스트</text>
+          <rect x="204" y="90" width="120" height="56" rx="11" fill="var(--impl-tint)" stroke="var(--impl)" stroke-width="1.6"/>
+          <text class="svg-id" x="264" y="115" text-anchor="middle" font-size="14" fill="var(--impl)">test</text>
+          <text class="svg-sub" x="264" y="133" text-anchor="middle" font-size="10.5" fill="var(--ink-soft)">유닛 셀프테스트</text>
         </g>
-        <!-- stage: verify -->
         <g>
-          <rect x="422" y="146" width="154" height="60" rx="11" fill="var(--spec-tint)" stroke="var(--spec)" stroke-width="1.6"/>
-          <text class="svg-id" x="499" y="172" text-anchor="middle" font-size="14" fill="var(--spec)">verify</text>
-          <text class="svg-sub" x="499" y="191" text-anchor="middle" font-size="11" fill="var(--ink-soft)">사용자 관통테스트</text>
+          <rect x="370" y="90" width="142" height="56" rx="11" fill="var(--spec-tint)" stroke="var(--spec)" stroke-width="1.6"/>
+          <text class="svg-id" x="441" y="115" text-anchor="middle" font-size="14" fill="var(--spec)">verify</text>
+          <text class="svg-sub" x="441" y="133" text-anchor="middle" font-size="10.5" fill="var(--ink-soft)">사용자 관통테스트</text>
         </g>
-        <!-- stage: eval -->
         <g>
-          <rect x="622" y="146" width="140" height="60" rx="11" fill="var(--orch-tint)" stroke="var(--orch)" stroke-width="1.6"/>
-          <text class="svg-id" x="692" y="172" text-anchor="middle" font-size="14" fill="var(--orch)">eval</text>
-          <text class="svg-sub" x="692" y="191" text-anchor="middle" font-size="11" fill="var(--ink-soft)">이전 버전 대비</text>
+          <rect x="558" y="90" width="120" height="56" rx="11" fill="var(--orch-tint)" stroke="var(--orch)" stroke-width="1.6"/>
+          <text class="svg-id" x="618" y="115" text-anchor="middle" font-size="14" fill="var(--orch)">eval</text>
+          <text class="svg-sub" x="618" y="133" text-anchor="middle" font-size="10.5" fill="var(--ink-soft)">이전 버전 대비</text>
         </g>
 
         <!-- decision diamond -->
+        <polygon points="786,84 832,118 786,152 740,118" fill="var(--surface)" stroke="var(--orch)" stroke-width="1.8"/>
+        <text class="svg-lbl" x="786" y="122" text-anchor="middle" font-size="11.5" fill="var(--ink)">개선?</text>
+
+        <!-- YES branch: diamond top -> new version, arc back to exec -->
+        <line x1="786" y1="84" x2="786" y2="66" stroke="var(--good)" stroke-width="1.8" marker-end="url(#lg)"/>
+        <text class="svg-lbl" x="800" y="78" text-anchor="start" font-size="11" fill="var(--good)">좋아짐 ▲</text>
         <g>
-          <polygon points="852,140 906,176 852,212 798,176" fill="var(--surface)" stroke="var(--orch)" stroke-width="1.8"/>
-          <text class="svg-lbl" x="852" y="172" text-anchor="middle" font-size="12" fill="var(--ink)">개선</text>
-          <text class="svg-lbl" x="852" y="188" text-anchor="middle" font-size="12" fill="var(--ink)">되었나?</text>
+          <rect x="716" y="22" width="140" height="42" rx="10" fill="color-mix(in srgb, var(--good) 14%, var(--surface))" stroke="var(--good)" stroke-width="1.5"/>
+          <text class="svg-id" x="786" y="48" text-anchor="middle" font-size="12.5" fill="var(--good)">새 버전 (v+1)</text>
+        </g>
+        <path d="M716,43 C470,6 210,6 106,84" fill="none" stroke="var(--good)" stroke-width="1.6" stroke-dasharray="2 5" marker-end="url(#lg)"/>
+        <text class="svg-lbl" x="400" y="14" text-anchor="middle" font-size="11" fill="var(--good)">promote · 다음 목표 (v+1)</text>
+
+        <!-- FAIL GATE 1: test ✗ (유닛 실패) -->
+        <line x1="264" y1="146" x2="264" y2="180" stroke="var(--impl)" stroke-width="1.6" marker-end="url(#li)"/>
+        <text class="svg-lbl" x="278" y="167" text-anchor="start" font-size="10.5" fill="var(--impl)">✗ 유닛 실패</text>
+        <g>
+          <rect x="204" y="182" width="120" height="40" rx="9" fill="var(--impl-tint)" stroke="var(--impl)" stroke-width="1.4"/>
+          <text class="svg-lbl" x="264" y="200" text-anchor="middle" font-size="11.5" fill="var(--impl)">impl 재시도</text>
+          <text class="svg-sub" x="264" y="214" text-anchor="middle" font-size="9.5" fill="var(--ink-soft)">같은 태스크 ≤ N회</text>
         </g>
 
-        <!-- YES branch: diamond top -> new version -->
-        <path d="M852,140 L852,74" fill="none" stroke="var(--good)" stroke-width="1.8" marker-end="url(#lg)"/>
-        <text class="svg-lbl" x="866" y="112" text-anchor="start" font-size="11.5" fill="var(--good)">좋아짐 ▲</text>
+        <!-- FAIL GATE 2: verify ✗ (관통 실패) -->
+        <line x1="441" y1="146" x2="441" y2="180" stroke="var(--spec)" stroke-width="1.6" marker-end="url(#ls)"/>
+        <text class="svg-lbl" x="455" y="167" text-anchor="start" font-size="10.5" fill="var(--spec)">✗ 관통 실패</text>
         <g>
-          <rect x="778" y="32" width="150" height="44" rx="10" fill="color-mix(in srgb, var(--good) 14%, var(--surface))" stroke="var(--good)" stroke-width="1.5"/>
-          <text class="svg-id" x="853" y="59" text-anchor="middle" font-size="12.5" fill="var(--good)">새 버전 (v+1)</text>
+          <rect x="370" y="182" width="142" height="40" rx="9" fill="var(--spec-tint)" stroke="var(--spec)" stroke-width="1.4"/>
+          <text class="svg-lbl" x="441" y="200" text-anchor="middle" font-size="11.5" fill="var(--spec)">spec 재계획 / impl 재실행</text>
+          <text class="svg-sub" x="441" y="214" text-anchor="middle" font-size="9.5" fill="var(--ink-soft)">기준이 틀렸나 · 구현이 틀렸나 orch 판별</text>
         </g>
-        <!-- new version arcs back over top to exec (next goal) -->
-        <path d="M778,54 C520,54 300,54 112,54 L112,140" fill="none" stroke="var(--good)" stroke-width="1.6" stroke-dasharray="2 5" marker-end="url(#lg)"/>
-        <text class="svg-lbl" x="440" y="44" text-anchor="middle" font-size="11.5" fill="var(--good)">promote → 다음 목표로 되돌림</text>
 
-        <!-- NO branch: diamond bottom -> backlog -->
-        <path d="M852,212 L852,276" fill="none" stroke="var(--bad)" stroke-width="1.8" marker-end="url(#lb)"/>
-        <text class="svg-lbl" x="866" y="248" text-anchor="start" font-size="11.5" fill="var(--bad)">안좋아짐 ▼</text>
+        <!-- FAIL GATE 3: eval ▼ (회귀) -->
+        <line x1="786" y1="152" x2="786" y2="180" stroke="var(--bad)" stroke-width="1.6" marker-end="url(#lb)"/>
+        <text class="svg-lbl" x="800" y="169" text-anchor="start" font-size="10.5" fill="var(--bad)">▼ 회귀</text>
         <g>
-          <rect x="778" y="278" width="150" height="44" rx="10" fill="color-mix(in srgb, var(--bad) 12%, var(--surface))" stroke="var(--bad)" stroke-width="1.5"/>
-          <text class="svg-id" x="853" y="305" text-anchor="middle" font-size="12.5" fill="var(--bad)">백로그 생성</text>
+          <rect x="714" y="182" width="144" height="40" rx="9" fill="color-mix(in srgb, var(--bad) 12%, var(--surface))" stroke="var(--bad)" stroke-width="1.4"/>
+          <text class="svg-lbl" x="786" y="200" text-anchor="middle" font-size="11.5" fill="var(--bad)">롤백 + 회귀 백로그</text>
+          <text class="svg-sub" x="786" y="214" text-anchor="middle" font-size="9.5" fill="var(--ink-soft)">이전 버전 유지</text>
         </g>
-        <!-- backlog arcs back to exec (re-plan) -->
-        <path d="M778,300 C440,300 260,300 112,300 L112,206" fill="none" stroke="var(--bad)" stroke-width="1.6" stroke-dasharray="2 5" marker-end="url(#lb)"/>
-        <text class="svg-lbl" x="430" y="316" text-anchor="middle" font-size="11.5" fill="var(--bad)">회귀 → spec 재계획 후 재실행</text>
+
+        <!-- feedback lane: all fails converge and return to exec -->
+        <line x1="264" y1="222" x2="264" y2="278" stroke="var(--ink-soft)" stroke-width="1.3"/>
+        <line x1="441" y1="222" x2="441" y2="278" stroke="var(--ink-soft)" stroke-width="1.3"/>
+        <line x1="786" y1="222" x2="786" y2="278" stroke="var(--ink-soft)" stroke-width="1.3"/>
+        <path d="M786,278 L100,278 L100,148" fill="none" stroke="var(--ink-soft)" stroke-width="1.6" marker-end="url(#lr)"/>
+        <text class="svg-lbl" x="443" y="296" text-anchor="middle" font-size="10.5" fill="var(--ink-soft)">되먹임 → 재실행 · 실패 근거 백로그 기록 · 예산 소진 시 상위 에스컬레이션</text>
       </svg>
     </div>
 
     <div class="cap">
-      <span class="k"><span class="dot" style="background:var(--impl)"></span> impl 소관</span>
-      <span class="k"><span class="dot" style="background:var(--spec)"></span> spec 정의</span>
-      <span class="k"><span class="dot" style="background:var(--orch)"></span> orch 판정</span>
-      <span class="k"><span class="dot" style="background:var(--good)"></span> 승격</span>
-      <span class="k"><span class="dot" style="background:var(--bad)"></span> 회귀 되먹임</span>
+      <span class="k"><span style="color:var(--good)">✓</span> 통과 → 전진</span>
+      <span class="k"><span class="dot" style="background:var(--impl)"></span> ✗ test 실패(유닛)</span>
+      <span class="k"><span class="dot" style="background:var(--spec)"></span> ✗ verify 실패(관통)</span>
+      <span class="k"><span class="dot" style="background:var(--bad)"></span> ▼ eval 회귀</span>
+      <span class="k"><span class="dot" style="background:var(--good)"></span> ▲ 승격</span>
     </div>
 
-    <p style="margin-top:22px;color:var(--ink-soft);font-size:14.5px;max-width:70ch">
+    <p style="margin-top:22px;color:var(--ink-soft);font-size:14.5px;max-width:72ch">
       <b style="color:var(--ink)">왜 test 와 verify 를 나누나?</b> — userscript 의 <code style="font-family:var(--font-mono)">self-test</code>(mock 워크시트 회귀검증)는
       “파싱 로직이 안 깨졌나”를 본다. 하지만 사용자는 <i>“메뉴가 실제로 먹음직스럽고 원칙을 지키나”</i>를 본다.
       전자가 <b style="color:var(--impl)">test</b>, 후자가 <b style="color:var(--spec)">verify(관통테스트)</b>. 둘 다 통과해야 eval 로 넘어간다.
+    </p>
+
+    <!-- failure handling policy -->
+    <div class="fail-head">
+      <h3 class="fail-title">test · verify · eval 실패 시 동작</h3>
+      <p class="fail-lede">
+        핵심 구분: <b class="g-gate">게이트 실패(test/verify)</b> 는 <i>전진 차단 → 재시도·재계획</i> 이고,
+        <b class="g-reg">회귀(eval)</b> 는 <i>게이트는 통과했지만 이전 버전 대비 하락 → 롤백</i> 이다. 되먹임 목적지가 서로 다르다.
+      </p>
+    </div>
+    <div class="fail-grid">
+      <div class="fcard impl">
+        <div class="fc-top"><span class="fc-tag">GATE</span><span class="fc-id">test</span></div>
+        <div class="fc-when">impl 유닛 셀프테스트 실패<br><span>(로직이 깨짐 · verify 진입 차단)</span></div>
+        <ul class="fc-do">
+          <li><b>즉시</b> impl 내부 재시도 — 같은 태스크·수용기준</li>
+          <li><b>예산 초과</b> → spec 에 “태스크 재정의” 요청</li>
+          <li>verify/eval 로 넘어가지 않음</li>
+        </ul>
+        <div class="fc-foot"><span class="fc-k">한계</span> 재시도 N회 <span class="fc-sep">·</span> <span class="fc-k">버전</span> 승격 후보 아님</div>
+      </div>
+
+      <div class="fcard spec">
+        <div class="fc-top"><span class="fc-tag">GATE</span><span class="fc-id">verify</span></div>
+        <div class="fc-when">유닛은 통과, <b>사용자 관통테스트 실패</b><br><span>(만들긴 했으나 목표 미충족)</span></div>
+        <ul class="fc-do">
+          <li>orch 가 원인 판별: <b>구현이 틀렸나 / 기준이 틀렸나</b></li>
+          <li>구현 문제 → impl 재실행 (같은 기준)</li>
+          <li>기준·시나리오 문제 → spec 재계획</li>
+        </ul>
+        <div class="fc-foot"><span class="fc-k">한계</span> 재계획 M회→사용자 에스컬레이션 <span class="fc-sep">·</span> <span class="fc-k">버전</span> 승격 안 함</div>
+      </div>
+
+      <div class="fcard bad">
+        <div class="fc-top"><span class="fc-tag">REG</span><span class="fc-id">eval ▼</span></div>
+        <div class="fc-when">게이트는 통과, <b>이전 버전 대비 점수 하락</b><br><span>(부분 개선이 다른 곳을 악화)</span></div>
+        <ul class="fc-do">
+          <li><b>롤백</b> — 이전 버전을 현행으로 유지</li>
+          <li>회귀 <b>백로그 생성</b> (근거·디프 첨부)</li>
+          <li>백로그 → spec 재계획으로 되먹임</li>
+        </ul>
+        <div class="fc-foot"><span class="fc-k">한계</span> 연속 회귀 K회→목표 재검토 <span class="fc-sep">·</span> <span class="fc-k">버전</span> v 유지(승격 취소)</div>
+      </div>
+    </div>
+    <p class="fail-rules">
+      <span class="fr">모든 실패는 <b>근거와 함께 백로그에 기록</b> → 같은 실패 반복 방지.</span>
+      <span class="fr">모든 재시도·재계획엔 <b>예산</b>이 있고, 소진 시 상위(사용자/목표)로 <b>에스컬레이션</b> → 무한루프 방지.</span>
     </p>
   </div>
 </section>
