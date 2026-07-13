@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>헤르메스 · 에이전트 분리 설계</title>
+<style>
+  :root {
+    --bg: #F4F5F7;
+    --surface: #FFFFFF;
+    --surface-2: #ECEEF3;
+    --ink: #16202E;
+    --ink-soft: #5A6676;
+    --ink-faint: #8A94A3;
+    --line: #D8DCE4;
+    --line-soft: #E6E9EF;
+    --hermes: #B07C1E;
+    --hermes-2: #C8912E;
+    --orch: #4353C7;
+    --orch-tint: #EAECFB;
+    --spec: #0E8B84;
+    --spec-tint: #E1F1F0;
+    --impl: #C0533A;
+    --impl-tint: #F9E9E4;
+    --good: #2E8B57;
+    --bad: #C0392B;
+    --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+    --maxw: 1080px;
+    --r: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0B1017;
+      --surface: #131A25;
+      --surface-2: #1A2331;
+      --ink: #E7EBF1;
+      --ink-soft: #97A2B3;
+      --ink-faint: #6C778A;
+      --line: #26313F;
+      --line-soft: #1E2735;
+      --hermes: #E0B24B;
+      --hermes-2: #EAC163;
+      --orch: #8290F4;
+      --orch-tint: #1D2440;
+      --spec: #38C7BE;
+      --spec-tint: #123230;
+      --impl: #E9866C;
+      --impl-tint: #351E18;
+      --good: #4FBF83;
+      --bad: #E5675A;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #F4F5F7; --surface: #FFFFFF; --surface-2: #ECEEF3; --ink: #16202E;
+    --ink-soft: #5A6676; --ink-faint: #8A94A3; --line: #D8DCE4; --line-soft: #E6E9EF;
+    --hermes: #B07C1E; --hermes-2: #C8912E; --orch: #4353C7; --orch-tint: #EAECFB;
+    --spec: #0E8B84; --spec-tint: #E1F1F0; --impl: #C0533A; --impl-tint: #F9E9E4;
+    --good: #2E8B57; --bad: #C0392B;
+  }
+  :root[data-theme="dark"] {
+    --bg: #0B1017; --surface: #131A25; --surface-2: #1A2331; --ink: #E7EBF1;
+    --ink-soft: #97A2B3; --ink-faint: #6C778A; --line: #26313F; --line-soft: #1E2735;
+    --hermes: #E0B24B; --hermes-2: #EAC163; --orch: #8290F4; --orch-tint: #1D2440;
+    --spec: #38C7BE; --spec-tint: #123230; --impl: #E9866C; --impl-tint: #351E18;
+    --good: #4FBF83; --bad: #E5675A;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+
+  /* ---- eyebrow / labels ---- */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--hermes);
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 26px; height: 1px;
+    background: var(--hermes);
+    display: inline-block;
+    opacity: 0.7;
+  }
+
+  /* ---- header ---- */
+  header {
+    border-bottom: 1px solid var(--line);
+    background:
+      radial-gradient(120% 140% at 88% -10%, color-mix(in srgb, var(--hermes) 12%, transparent), transparent 60%),
+      var(--surface);
+  }
+  .head-inner { padding: 60px 24px 48px; max-width: var(--maxw); margin: 0 auto; }
+  h1 {
+    font-size: clamp(30px, 5vw, 50px);
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    font-weight: 800;
+    margin: 20px 0 0;
+    text-wrap: balance;
+    max-width: 20ch;
+  }
+  h1 .em { color: var(--hermes); }
+  .lede {
+    margin: 20px 0 0;
+    font-size: clamp(16px, 2.2vw, 19px);
+    color: var(--ink-soft);
+    max-width: 62ch;
+    line-height: 1.55;
+  }
+  .meta-row {
+    margin-top: 30px;
+    display: flex; flex-wrap: wrap; gap: 10px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+  }
+  .chip {
+    border: 1px solid var(--line);
+    border-radius: 100px;
+    padding: 5px 13px;
+    color: var(--ink-soft);
+    background: var(--surface);
+    display: inline-flex; gap: 7px; align-items: center;
+  }
+  .chip b { color: var(--ink); font-weight: 600; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+  /* ---- section scaffolding ---- */
+  section { padding: 62px 0; border-bottom: 1px solid var(--line-soft); }
+  .sec-head { margin-bottom: 30px; }
+  .sec-head h2 {
+    font-size: clamp(23px, 3.4vw, 31px);
+    letter-spacing: -0.015em;
+    font-weight: 750;
+    margin: 12px 0 0;
+    text-wrap: balance;
+  }
+  .sec-head p { margin: 12px 0 0; color: var(--ink-soft); max-width: 66ch; }
+  .num {
+    font-family: var(--font-mono);
+    color: var(--ink-faint);
+    font-weight: 600;
+  }
+
+  /* ---- schematic frame ---- */
+  .schematic {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    padding: 12px;
+    overflow-x: auto;
+  }
+  .schematic svg { display: block; width: 100%; height: auto; min-width: 640px; }
+  .cap {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--ink-faint);
+    margin-top: 14px;
+    display: flex; flex-wrap: wrap; gap: 6px 18px;
+    align-items: center;
+  }
+  .cap .k { display: inline-flex; gap: 7px; align-items: center; }
+
+  /* svg text helpers via class */
+  text { font-family: var(--font-sans); }
+  .svg-id { font-family: var(--font-mono); font-weight: 700; letter-spacing: 0.02em; }
+  .svg-sub { font-family: var(--font-sans); }
+  .svg-lbl { font-family: var(--font-mono); font-weight: 600; }
+
+  /* ---- role cards ---- */
+  .roles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  @media (max-width: 860px) { .roles { grid-template-columns: 1fr; } }
+  .role {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    padding: 22px 22px 24px;
+    position: relative;
+    display: flex; flex-direction: column;
+  }
+  .role::before {
+    content: ""; position: absolute; left: 0; top: 18px; bottom: 18px;
+    width: 3px; border-radius: 3px; background: var(--accent);
+  }
+  .role.orch { --accent: var(--orch); --tint: var(--orch-tint); }
+  .role.spec { --accent: var(--spec); --tint: var(--spec-tint); }
+  .role.impl { --accent: var(--impl); --tint: var(--impl-tint); }
+  .role-id {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--accent);
+    display: flex; align-items: baseline; gap: 9px;
+  }
+  .role-id .kr { font-family: var(--font-sans); font-size: 13px; color: var(--ink-soft); font-weight: 600; }
+  .role-tag {
+    align-self: flex-start;
+    margin-top: 12px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    letter-spacing: 0.03em;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: var(--tint);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .role h3 { font-size: 16px; margin: 18px 0 4px; font-weight: 700; }
+  .role ul { margin: 6px 0 0; padding-left: 0; list-style: none; }
+  .role li { position: relative; padding-left: 18px; margin: 7px 0; font-size: 14px; color: var(--ink-soft); }
+  .role li::before { content: ""; position: absolute; left: 2px; top: 9px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+  .role .io {
+    margin-top: 18px; padding-top: 16px; border-top: 1px dashed var(--line);
+    font-family: var(--font-mono); font-size: 12.5px; display: grid; gap: 8px;
+  }
+  .role .io div { display: grid; grid-template-columns: 46px 1fr; gap: 8px; align-items: start; }
+  .role .io .t { color: var(--ink-faint); }
+  .role .io .v { color: var(--ink); }
+  .role .no {
+    margin-top: 16px; font-size: 13px; color: var(--bad);
+    background: color-mix(in srgb, var(--bad) 9%, transparent);
+    border-radius: 8px; padding: 10px 12px; line-height: 1.45;
+  }
+  .role .no b { font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.04em; }
+
+  /* ---- ladder (build direction) ---- */
+  .ladder { display: grid; gap: 12px; }
+  .rung {
+    display: grid; grid-template-columns: 132px 1fr auto; gap: 18px; align-items: center;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 16px 20px; position: relative;
+  }
+  @media (max-width: 720px) { .rung { grid-template-columns: 1fr; gap: 8px; } }
+  .rung .lv {
+    font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+    color: var(--hermes); letter-spacing: 0.04em; display: flex; align-items: center; gap: 9px;
+  }
+  .rung .lv .bar { height: 8px; border-radius: 4px; background: var(--hermes); display: inline-block; }
+  .rung .title { font-weight: 650; font-size: 15px; }
+  .rung .desc { color: var(--ink-soft); font-size: 13.5px; margin-top: 2px; }
+  .rung .verify {
+    font-family: var(--font-mono); font-size: 11.5px; color: var(--spec);
+    background: var(--spec-tint); padding: 5px 11px; border-radius: 7px; white-space: nowrap;
+  }
+  @media (max-width: 720px) { .rung .verify { justify-self: start; } }
+
+  /* ---- alternatives ---- */
+  .alts { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 780px) { .alts { grid-template-columns: 1fr; } }
+  .alt {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+    padding: 22px; display: flex; flex-direction: column;
+  }
+  .alt .hd { display: flex; gap: 13px; align-items: baseline; }
+  .alt .idx {
+    font-family: var(--font-mono); font-weight: 700; font-size: 13px;
+    color: var(--surface); background: var(--hermes); border-radius: 7px;
+    padding: 3px 9px; flex: none;
+  }
+  .alt h3 { font-size: 16px; margin: 0; font-weight: 700; letter-spacing: -0.01em; }
+  .alt p { color: var(--ink-soft); font-size: 14px; margin: 12px 0 0; }
+  .alt .why {
+    margin-top: 14px; font-size: 13px; color: var(--ink); padding-top: 13px;
+    border-top: 1px solid var(--line-soft);
+  }
+  .alt .why b { color: var(--hermes); font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.05em; }
+  .alt.head-alt { grid-column: 1 / -1; border-color: var(--hermes); background: color-mix(in srgb, var(--hermes) 6%, var(--surface)); }
+  .alt.head-alt .idx { background: var(--hermes-2); }
+
+  /* footer */
+  footer { padding: 40px 0 60px; color: var(--ink-faint); font-family: var(--font-mono); font-size: 12.5px; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 20px; justify-content: space-between; }
+
+  a { color: var(--hermes); }
+  @media (prefers-reduced-motion: no-preference) {
+    .flow { stroke-dasharray: 5 6; animation: dash 1.4s linear infinite; }
+    @keyframes dash { to { stroke-dashoffset: -22; } }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="head-inner">
+    <span class="eyebrow">Hermes · Agent Architecture · rev 0.1</span>
+    <h1>모놀리식 <span class="em">헤르메스</span>를<br>세 개의 협력 에이전트로 분리한다</h1>
+    <p class="lede">
+      지금의 헤르메스는 “판단·계획·구현·검증”을 한 몸으로 처리한다. 이를
+      <b>orch(오케스트레이션) · spec(태스크 생성) · impl(구현)</b> 로 나누고,
+      그 위에 <b>GOAL_LOOP</b>(exec → test → verify → eval → 새 버전) 자기개선 루프를 얹는다.
+      작은 단위에서 큰 단위로 쌓아 올린다.
+    </p>
+    <div class="meta-row">
+      <span class="chip"><span class="dot" style="background:var(--orch)"></span> <b>orch</b> 제어평면</span>
+      <span class="chip"><span class="dot" style="background:var(--spec)"></span> <b>spec</b> 태스크·검증정의</span>
+      <span class="chip"><span class="dot" style="background:var(--impl)"></span> <b>impl</b> 구현·셀프테스트</span>
+      <span class="chip">근거: <b>menu v1→v4 · userscript self-test</b></span>
+    </div>
+  </div>
+</header>
+
+<!-- ============ 1. 관계도 ============ -->
+<section id="map">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow"><span class="num">01</span> &nbsp;Relationship Map</span>
+      <h2>에이전트 관계도 — orch 를 유일한 라우터로 두는 스타 토폴로지</h2>
+      <p>spec 과 impl 은 서로 직접 대화하지 않는다. 모든 태스크·산출물·평가는 orch 를 경유한다.
+         이렇게 하면 상태(목표·현재 버전·백로그)가 한 곳에 모이고, spec/impl 은 언제든 교체·병렬화할 수 있는 무상태 워커가 된다.</p>
+    </div>
+
+    <div class="schematic">
+      <svg viewBox="0 0 960 470" role="img" aria-label="에이전트 관계도: GOAL이 orch로 주입되고, orch가 spec·impl·backlog와 양방향으로 통신한다">
+        <defs>
+          <marker id="ar" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/>
+          </marker>
+          <marker id="arH" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--hermes)"/>
+          </marker>
+        </defs>
+
+        <!-- edges (drawn first, under nodes) -->
+        <!-- GOAL -> orch -->
+        <line class="flow" x1="188" y1="86" x2="352" y2="86" stroke="var(--hermes)" stroke-width="2" marker-end="url(#arH)"/>
+        <text class="svg-lbl" x="270" y="76" text-anchor="middle" font-size="12" fill="var(--hermes)">목표 주입</text>
+
+        <!-- orch <-> spec -->
+        <line x1="418" y1="150" x2="288" y2="298" stroke="var(--ink-soft)" stroke-width="1.6" marker-end="url(#ar)" marker-start="url(#ar)"/>
+        <text class="svg-lbl" x="300" y="228" text-anchor="end" font-size="11.5" fill="var(--ink-soft)">① 목표→태스크</text>
+        <text class="svg-lbl" x="300" y="244" text-anchor="end" font-size="11.5" fill="var(--ink-soft)">② 태스크+검증기준</text>
+
+        <!-- orch <-> impl -->
+        <line x1="542" y1="150" x2="672" y2="298" stroke="var(--ink-soft)" stroke-width="1.6" marker-end="url(#ar)" marker-start="url(#ar)"/>
+        <text class="svg-lbl" x="662" y="228" text-anchor="start" font-size="11.5" fill="var(--ink-soft)">③ 태스크 1건 배정</text>
+        <text class="svg-lbl" x="662" y="244" text-anchor="start" font-size="11.5" fill="var(--ink-soft)">④ 산출물+셀프테스트</text>
+
+        <!-- orch <-> backlog -->
+        <line x1="608" y1="86" x2="772" y2="86" stroke="var(--ink-soft)" stroke-width="1.6" marker-end="url(#ar)" marker-start="url(#ar)"/>
+        <text class="svg-lbl" x="690" y="76" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">⑤ 회귀 적재</text>
+        <text class="svg-lbl" x="690" y="107" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">⑥ 재투입</text>
+
+        <!-- GOAL node -->
+        <g>
+          <rect x="40" y="58" width="148" height="56" rx="10" fill="var(--surface-2)" stroke="var(--hermes)" stroke-width="1.4"/>
+          <text class="svg-id" x="114" y="82" text-anchor="middle" font-size="15" fill="var(--hermes)">GOAL</text>
+          <text class="svg-sub" x="114" y="100" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">사용자 목표</text>
+        </g>
+
+        <!-- backlog node -->
+        <g>
+          <rect x="772" y="58" width="150" height="56" rx="10" fill="var(--surface-2)" stroke="var(--line)" stroke-width="1.4"/>
+          <text class="svg-id" x="847" y="82" text-anchor="middle" font-size="14" fill="var(--ink)">BACKLOG</text>
+          <text class="svg-sub" x="847" y="100" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">회귀·부채 원장</text>
+        </g>
+
+        <!-- orch node (hub) -->
+        <g>
+          <rect x="352" y="24" width="256" height="126" rx="14" fill="var(--surface)" stroke="var(--orch)" stroke-width="2"/>
+          <rect x="352" y="24" width="6" height="126" rx="3" fill="var(--orch)"/>
+          <text class="svg-id" x="480" y="66" text-anchor="middle" font-size="21" fill="var(--orch)">orch</text>
+          <text class="svg-sub" x="480" y="90" text-anchor="middle" font-size="12.5" fill="var(--ink)">오케스트레이터 · 제어평면</text>
+          <text class="svg-lbl" x="480" y="114" text-anchor="middle" font-size="11" fill="var(--ink-soft)">GOAL_LOOP 상태머신 소유</text>
+          <text class="svg-lbl" x="480" y="132" text-anchor="middle" font-size="11" fill="var(--ink-soft)">목표 · 버전 · 백로그 유일 보유</text>
+        </g>
+
+        <!-- spec node -->
+        <g>
+          <rect x="150" y="300" width="228" height="128" rx="14" fill="var(--surface)" stroke="var(--spec)" stroke-width="2"/>
+          <rect x="150" y="300" width="6" height="128" rx="3" fill="var(--spec)"/>
+          <text class="svg-id" x="264" y="340" text-anchor="middle" font-size="19" fill="var(--spec)">spec</text>
+          <text class="svg-sub" x="264" y="362" text-anchor="middle" font-size="12" fill="var(--ink)">스페시파이어</text>
+          <text class="svg-lbl" x="264" y="386" text-anchor="middle" font-size="11" fill="var(--ink-soft)">목표 → 검증가능 태스크</text>
+          <text class="svg-lbl" x="264" y="404" text-anchor="middle" font-size="11" fill="var(--ink-soft)">관통테스트(수용기준) 정의</text>
+        </g>
+
+        <!-- impl node -->
+        <g>
+          <rect x="582" y="300" width="228" height="128" rx="14" fill="var(--surface)" stroke="var(--impl)" stroke-width="2"/>
+          <rect x="582" y="300" width="6" height="128" rx="3" fill="var(--impl)"/>
+          <text class="svg-id" x="696" y="340" text-anchor="middle" font-size="19" fill="var(--impl)">impl</text>
+          <text class="svg-sub" x="696" y="362" text-anchor="middle" font-size="12" fill="var(--ink)">임플리멘터</text>
+          <text class="svg-lbl" x="696" y="386" text-anchor="middle" font-size="11" fill="var(--ink-soft)">태스크 1건 → 산출물</text>
+          <text class="svg-lbl" x="696" y="404" text-anchor="middle" font-size="11" fill="var(--ink-soft)">유닛 셀프테스트 동봉</text>
+        </g>
+      </svg>
+    </div>
+    <div class="cap">
+      <span class="k"><span class="dot" style="background:var(--hermes)"></span> 목표/버전 흐름</span>
+      <span class="k"><span class="dot" style="background:var(--ink-soft)"></span> 에이전트 메시지</span>
+      <span class="k">스타 토폴로지 → spec·impl 은 무상태 워커(교체·병렬 가능)</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 2. GOAL_LOOP ============ -->
+<section id="loop">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow"><span class="num">02</span> &nbsp;Loop Engineering</span>
+      <h2>GOAL_LOOP — 관통테스트로 검증하고 회귀는 백로그로 되먹인다</h2>
+      <p><span style="font-family:var(--font-mono);font-size:13.5px">exec → test → verify → eval</span> 로 한 사이클을 돌린 뒤,
+         이전 버전보다 <b>좋아졌으면</b> 버전을 올리고, <b>안좋아졌으면</b> 백로그를 만들어 재계획한다.
+         핵심은 <b>verify = 사용자 입장 관통테스트</b>(유닛 통과와 별개)라는 점, 그리고 <b>eval 이 회귀를 판정</b>한다는 점이다.</p>
+    </div>
+
+    <div class="schematic">
+      <svg viewBox="0 0 960 380" role="img" aria-label="GOAL_LOOP 상태머신: exec, test, verify, eval을 거쳐 개선 여부를 분기한다">
+        <defs>
+          <marker id="lr" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/>
+          </marker>
+          <marker id="lg" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7.5" markerHeight="7.5" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--good)"/>
+          </marker>
+          <marker id="lb" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7.5" markerHeight="7.5" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--bad)"/>
+          </marker>
+        </defs>
+
+        <!-- main chain arrows -->
+        <line x1="182" y1="176" x2="226" y2="176" stroke="var(--ink-soft)" stroke-width="1.8" marker-end="url(#lr)"/>
+        <line x1="372" y1="176" x2="416" y2="176" stroke="var(--ink-soft)" stroke-width="1.8" marker-end="url(#lr)"/>
+        <line x1="576" y1="176" x2="620" y2="176" stroke="var(--ink-soft)" stroke-width="1.8" marker-end="url(#lr)"/>
+        <line x1="762" y1="176" x2="792" y2="176" stroke="var(--ink-soft)" stroke-width="1.8" marker-end="url(#lr)"/>
+
+        <!-- stage: exec -->
+        <g>
+          <rect x="42" y="146" width="140" height="60" rx="11" fill="var(--impl-tint)" stroke="var(--impl)" stroke-width="1.6"/>
+          <text class="svg-id" x="112" y="172" text-anchor="middle" font-size="14" fill="var(--impl)">exec</text>
+          <text class="svg-sub" x="112" y="191" text-anchor="middle" font-size="11" fill="var(--ink-soft)">impl 이 실행</text>
+        </g>
+        <!-- stage: test -->
+        <g>
+          <rect x="232" y="146" width="140" height="60" rx="11" fill="var(--impl-tint)" stroke="var(--impl)" stroke-width="1.6"/>
+          <text class="svg-id" x="302" y="172" text-anchor="middle" font-size="14" fill="var(--impl)">test</text>
+          <text class="svg-sub" x="302" y="191" text-anchor="middle" font-size="11" fill="var(--ink-soft)">유닛 셀프테스트</text>
+        </g>
+        <!-- stage: verify -->
+        <g>
+          <rect x="422" y="146" width="154" height="60" rx="11" fill="var(--spec-tint)" stroke="var(--spec)" stroke-width="1.6"/>
+          <text class="svg-id" x="499" y="172" text-anchor="middle" font-size="14" fill="var(--spec)">verify</text>
+          <text class="svg-sub" x="499" y="191" text-anchor="middle" font-size="11" fill="var(--ink-soft)">사용자 관통테스트</text>
+        </g>
+        <!-- stage: eval -->
+        <g>
+          <rect x="622" y="146" width="140" height="60" rx="11" fill="var(--orch-tint)" stroke="var(--orch)" stroke-width="1.6"/>
+          <text class="svg-id" x="692" y="172" text-anchor="middle" font-size="14" fill="var(--orch)">eval</text>
+          <text class="svg-sub" x="692" y="191" text-anchor="middle" font-size="11" fill="var(--ink-soft)">이전 버전 대비</text>
+        </g>
+
+        <!-- decision diamond -->
+        <g>
+          <polygon points="852,140 906,176 852,212 798,176" fill="var(--surface)" stroke="var(--orch)" stroke-width="1.8"/>
+          <text class="svg-lbl" x="852" y="172" text-anchor="middle" font-size="12" fill="var(--ink)">개선</text>
+          <text class="svg-lbl" x="852" y="188" text-anchor="middle" font-size="12" fill="var(--ink)">되었나?</text>
+        </g>
+
+        <!-- YES branch: diamond top -> new version -->
+        <path d="M852,140 L852,74" fill="none" stroke="var(--good)" stroke-width="1.8" marker-end="url(#lg)"/>
+        <text class="svg-lbl" x="866" y="112" text-anchor="start" font-size="11.5" fill="var(--good)">좋아짐 ▲</text>
+        <g>
+          <rect x="778" y="32" width="150" height="44" rx="10" fill="color-mix(in srgb, var(--good) 14%, var(--surface))" stroke="var(--good)" stroke-width="1.5"/>
+          <text class="svg-id" x="853" y="59" text-anchor="middle" font-size="12.5" fill="var(--good)">새 버전 (v+1)</text>
+        </g>
+        <!-- new version arcs back over top to exec (next goal) -->
+        <path d="M778,54 C520,54 300,54 112,54 L112,140" fill="none" stroke="var(--good)" stroke-width="1.6" stroke-dasharray="2 5" marker-end="url(#lg)"/>
+        <text class="svg-lbl" x="440" y="44" text-anchor="middle" font-size="11.5" fill="var(--good)">promote → 다음 목표로 되돌림</text>
+
+        <!-- NO branch: diamond bottom -> backlog -->
+        <path d="M852,212 L852,276" fill="none" stroke="var(--bad)" stroke-width="1.8" marker-end="url(#lb)"/>
+        <text class="svg-lbl" x="866" y="248" text-anchor="start" font-size="11.5" fill="var(--bad)">안좋아짐 ▼</text>
+        <g>
+          <rect x="778" y="278" width="150" height="44" rx="10" fill="color-mix(in srgb, var(--bad) 12%, var(--surface))" stroke="var(--bad)" stroke-width="1.5"/>
+          <text class="svg-id" x="853" y="305" text-anchor="middle" font-size="12.5" fill="var(--bad)">백로그 생성</text>
+        </g>
+        <!-- backlog arcs back to exec (re-plan) -->
+        <path d="M778,300 C440,300 260,300 112,300 L112,206" fill="none" stroke="var(--bad)" stroke-width="1.6" stroke-dasharray="2 5" marker-end="url(#lb)"/>
+        <text class="svg-lbl" x="430" y="316" text-anchor="middle" font-size="11.5" fill="var(--bad)">회귀 → spec 재계획 후 재실행</text>
+      </svg>
+    </div>
+
+    <div class="cap">
+      <span class="k"><span class="dot" style="background:var(--impl)"></span> impl 소관</span>
+      <span class="k"><span class="dot" style="background:var(--spec)"></span> spec 정의</span>
+      <span class="k"><span class="dot" style="background:var(--orch)"></span> orch 판정</span>
+      <span class="k"><span class="dot" style="background:var(--good)"></span> 승격</span>
+      <span class="k"><span class="dot" style="background:var(--bad)"></span> 회귀 되먹임</span>
+    </div>
+
+    <p style="margin-top:22px;color:var(--ink-soft);font-size:14.5px;max-width:70ch">
+      <b style="color:var(--ink)">왜 test 와 verify 를 나누나?</b> — userscript 의 <code style="font-family:var(--font-mono)">self-test</code>(mock 워크시트 회귀검증)는
+      “파싱 로직이 안 깨졌나”를 본다. 하지만 사용자는 <i>“메뉴가 실제로 먹음직스럽고 원칙을 지키나”</i>를 본다.
+      전자가 <b style="color:var(--impl)">test</b>, 후자가 <b style="color:var(--spec)">verify(관통테스트)</b>. 둘 다 통과해야 eval 로 넘어간다.
+    </p>
+  </div>
+</section>
+
+<!-- ============ 3. 역할분담 ============ -->
+<section id="roles">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow"><span class="num">03</span> &nbsp;Role Split</span>
+      <h2>역할분담 — 계획하는 자, 규정하는 자, 만드는 자를 분리한다</h2>
+      <p>모놀리식의 근본 문제는 “무엇을 할지 정하는 판단”과 “실제로 만드는 손”이 같은 컨텍스트에 뒤섞여, 검증이 자기채점이 되고 컨텍스트가 비대해진다는 점이다. 세 역할의 입·출력을 계약(schema)으로 고정한다.</p>
+    </div>
+
+    <div class="roles">
+      <!-- orch -->
+      <article class="role orch">
+        <div class="role-id">orch <span class="kr">오케스트레이터</span></div>
+        <span class="role-tag">STATEFUL · 제어평면</span>
+        <h3>하는 일</h3>
+        <ul>
+          <li>GOAL_LOOP 상태머신 구동·전이</li>
+          <li>spec/impl 스폰 시점과 라우팅 결정</li>
+          <li>eval(회귀 판정)·버전 승격·롤백</li>
+          <li>목표·버전 스냅샷·백로그의 유일 보관자</li>
+        </ul>
+        <div class="io">
+          <div><span class="t">IN</span><span class="v">GOAL, impl 산출물, 백로그</span></div>
+          <div><span class="t">OUT</span><span class="v">태스크 배정, 버전 승격/롤백</span></div>
+        </div>
+        <div class="no"><b>NOT</b> — 도메인 작업(파싱·메뉴구성·코딩)을 직접 하지 않는다. 라우팅과 판정만.</div>
+      </article>
+
+      <!-- spec -->
+      <article class="role spec">
+        <div class="role-id">spec <span class="kr">스페시파이어</span></div>
+        <span class="role-tag">STATELESS · 태스크 생성</span>
+        <h3>하는 일</h3>
+        <ul>
+          <li>목표 → 검증가능한 태스크로 분해</li>
+          <li>태스크마다 <b>수용기준</b> 부여</li>
+          <li><b>관통테스트(verify) 시나리오</b> 작성</li>
+          <li>“완료란 무엇인가”를 소유</li>
+        </ul>
+        <div class="io">
+          <div><span class="t">IN</span><span class="v">목표 or 백로그 항목</span></div>
+          <div><span class="t">OUT</span><span class="v">태스크[] + 수용기준 + 관통테스트</span></div>
+        </div>
+        <div class="no"><b>NOT</b> — 구현하지 않는다. 코드/산출물을 만들지 않고 “무엇을·어디까지”만 규정.</div>
+      </article>
+
+      <!-- impl -->
+      <article class="role impl">
+        <div class="role-id">impl <span class="kr">임플리멘터</span></div>
+        <span class="role-tag">STATELESS · 구현</span>
+        <h3>하는 일</h3>
+        <ul>
+          <li>태스크 <b>1건</b>을 받아 산출물 생성</li>
+          <li>수용기준 충족까지 반복</li>
+          <li>유닛 셀프테스트를 함께 동봉</li>
+          <li>작은 단위 → 병렬 fan-out 가능</li>
+        </ul>
+        <div class="io">
+          <div><span class="t">IN</span><span class="v">태스크 1건 + 수용기준</span></div>
+          <div><span class="t">OUT</span><span class="v">산출물 + 셀프테스트 결과</span></div>
+        </div>
+        <div class="no"><b>NOT</b> — 목표를 재해석하거나 범위를 넓히지 않는다. 배정된 태스크에만 집중.</div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 4. 구축방향 ============ -->
+<section id="build">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow"><span class="num">04</span> &nbsp;Build Direction</span>
+      <h2>구축방향 — 가장 작은 검증가능 단위부터 위로 쌓는다</h2>
+      <p>각 단(rung)마다 자체 verify 가 붙는다. 아래 단이 초록이 되어야 위 단을 조립한다. 메뉴 예시(셀 하나 → 한 끼 → 하루 → 주간 → userscript)에 그대로 대응된다.</p>
+    </div>
+
+    <div class="ladder">
+      <div class="rung">
+        <div class="lv"><span class="bar" style="width:18px"></span> L1 · 셀</div>
+        <div><div class="title">단일 셀 파싱 / 단일 메뉴 항목</div><div class="desc">F18 한 칸을 이름·설명으로 정확히 분해한다.</div></div>
+        <div class="verify">verify: mock 셀 → 기대 문자열</div>
+      </div>
+      <div class="rung">
+        <div class="lv"><span class="bar" style="width:34px"></span> L2 · 코너</div>
+        <div><div class="title">한 끼 · 한 코너 구성</div><div class="desc">코너 내 재료 무중복, 밥류 고정 등 국소 원칙.</div></div>
+        <div class="verify">verify: 코너 내 재료중복 0건</div>
+      </div>
+      <div class="rung">
+        <div class="lv"><span class="bar" style="width:52px"></span> L3 · 하루</div>
+        <div><div class="title">하루 단위 식단</div><div class="desc">코너당 육류 1종/일 등 교차 제약.</div></div>
+        <div class="verify">verify: 일자 교차 원칙 통과</div>
+      </div>
+      <div class="rung">
+        <div class="lv"><span class="bar" style="width:72px"></span> L4 · 주간</div>
+        <div><div class="title">주간 메뉴표 (원본 대비)</div><div class="desc">9대 원칙 + 원본 무중복 자동검증.</div></div>
+        <div class="verify">verify: 9대 원칙 전부 ✅</div>
+      </div>
+      <div class="rung">
+        <div class="lv"><span class="bar" style="width:96px"></span> L5 · 시스템</div>
+        <div><div class="title">userscript 자동기입 (관통)</div><div class="desc">xlsx → 보드 파싱 → 미리보기까지 사용자 흐름 전체.</div></div>
+        <div class="verify">verify: 사용자 관통테스트 통과</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 5. 대안 ============ -->
+<section id="alts" style="border-bottom:none">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow"><span class="num">05</span> &nbsp;Better Alternatives</span>
+      <h2>더 나은 대안 — 3-에이전트 기본형을 이렇게 강화한다</h2>
+      <p>요청한 orch/spec/impl 3분할은 좋은 출발점이다. 아래는 “자기채점 편향”과 “회귀 추적” 두 약점을 메우는 보강안이다.</p>
+    </div>
+
+    <div class="alts">
+      <div class="alt head-alt">
+        <div class="hd"><span class="idx">추천</span><h3>verify 를 impl·spec 에서 떼어 독립 eval 에이전트로 (3→4 분할)</h3></div>
+        <p>impl 이 자기 코드를, spec 이 자기 기준을 채점하면 편향이 생긴다. <b>관통테스트를 적대적으로 실행·판정하는 별도 eval(QA) 에이전트</b>를 두면 “정의하는 자(spec)”와 “판정하는 자(eval)”가 분리된다. orch 는 순수 라우팅으로 더 가벼워진다.</p>
+        <div class="why"><b>WHY</b> &nbsp;검증 신뢰도 ↑ · 자기채점 제거 — 3-에이전트에서 가장 큰 단일 개선.</div>
+      </div>
+
+      <div class="alt">
+        <div class="hd"><span class="idx">A</span><h3>에이전트 간 계약을 스키마로 고정</h3></div>
+        <p>spec→impl(태스크), impl→orch(결과)를 userscript 의 <code style="font-family:var(--font-mono)">PROFILE</code>처럼 엄격한 스키마로 외부화. 워커를 교체·병렬화·재현 가능하게 만든다.</p>
+        <div class="why"><b>WHY</b> &nbsp;무상태 워커의 전제조건 · 핸드오프 유실 방지.</div>
+      </div>
+
+      <div class="alt">
+        <div class="hd"><span class="idx">B</span><h3>백로그를 1급 영속 원장으로</h3></div>
+        <p>회귀를 일회성 메시지가 아니라 우선순위·근거가 붙은 지속 원장에 적재. 되풀이되는 회귀가 “추적되는 부채”가 된다.</p>
+        <div class="why"><b>WHY</b> &nbsp;루프가 같은 실수를 반복하지 않게 하는 기억.</div>
+      </div>
+
+      <div class="alt">
+        <div class="hd"><span class="idx">C</span><h3>버전 = 불변 스냅샷 + eval 디프 점수</h3></div>
+        <p>메뉴 v3→v4 처럼 모든 버전을 보존하고, eval 이 이전 대비 점수 디프를 산출 → 즉시 롤백 가능. “좋아졌나”를 숫자로 만든다.</p>
+        <div class="why"><b>WHY</b> &nbsp;회귀 판정의 객관화 · 안전한 되돌림.</div>
+      </div>
+
+      <div class="alt">
+        <div class="hd"><span class="idx">D</span><h3>작은 단위 → impl 병렬 fan-out</h3></div>
+        <p>구축을 작은 단위로 쪼갠 덕에 L1~L2 태스크는 대체로 독립적. orch 가 impl 여러 개를 동시에 돌리고 결과를 병합.</p>
+        <div class="why"><b>WHY</b> &nbsp;“작은 단위부터” 원칙의 자연스러운 성능 배당.</div>
+      </div>
+
+      <div class="alt">
+        <div class="hd"><span class="idx">E</span><h3>eval 은 pass/fail 이 아니라 “사용자 고통 감소”로</h3></div>
+        <p>관통테스트를 실제 사용자 시나리오(예: 담당자가 xlsx 붙여넣고 미리보기까지)로 정의하고, 통과 여부가 아니라 <i>고통 지표</i>가 내려갔는지로 eval.</p>
+        <div class="why"><b>WHY</b> &nbsp;“사용자 입장 관통테스트”의 본래 취지에 정렬.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>HERMES · Agent Separation · rev 0.1 · 2026-07-13</span>
+    <span>orch → spec → impl · GOAL_LOOP: exec→test→verify→eval→v+1</span>
+  </div>
+</footer>
+
+<script>
+  // theme toggle stamped by host wins in both directions; nothing else needed.
+</script>
+</body>
+</html>
