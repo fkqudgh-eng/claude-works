@@ -1,4 +1,4 @@
-# 헤르메스 에이전트 분리 설계 (rev 0.3)
+# 헤르메스 에이전트 분리 설계 (rev 0.4)
 
 > 시각 자료: [`hermes-agent-separation.html`](./hermes-agent-separation.html) — 시스템 맵·GOAL_LOOP·컴포넌트 배속 스키매틱 포함.
 
@@ -169,6 +169,25 @@
 - **C. 버전 = 불변 스냅샷 + eval 디프 점수** — 모든 버전 보존, 점수 디프로 즉시 롤백.
 - **D. 작은 단위 → impl 병렬 fan-out** — 독립 태스크를 orch 가 동시 dispatch 후 병합.
 - **E. eval 을 pass/fail 이 아니라 “사용자 고통 감소”로** — 실제 사용자 시나리오 기준 고통 지표로 판정.
+
+---
+
+## 8. 관통 시나리오 (worked example)
+
+이 저장소의 실제 작업(주간 메뉴 재구성 + self-test userscript)으로 한 턴을 따라간다. 목표 = **“주간 메뉴 v5 · 석식 다양성 강화”**.
+
+| # | 워커 | 동작 | 발행 이벤트 |
+|---|------|------|------------|
+| 1 | orch | 목표 주입 (이후 미관여) | `goal.created` |
+| 2 | spec | 문서작성 → 태스크 배포 (T1 석식 코너2 재구성 / T2 명칭 개선 / T3 self-test 갱신, 각 수용기준·관통테스트) | `task.created ×3` |
+| 3 | impl | T1·T2·T3 병렬 수행 + 셀프테스트 동봉 | `impl.done` |
+| 4 | test | mock 워크시트 self-test 회귀검증 통과 ✓ | — |
+| 5 | verify·eval | 관통 자동검증서 “코너 내 재료중복 1건” 적발 → 구현 미달 판정 | `verify.failed(구현)` |
+| 6 | impl | T1 재실행(중복 재료 교체) | `impl.done` |
+| 7 | verify·eval | 9대+신규 원칙 전부 통과, v4 대비 다양성 ↑ → 개선 | `verify.passed` |
+| 8 | verify·eval | **v5 승격.** orch 는 1번 이후 아무 것도 안 함 | `→ v5` |
+
+**분기:** 7단계 eval 이 회귀였다면(예: 다양성↑이나 원가 지표 악화) → `eval.regressed` → v4 롤백 + 회귀 백로그 → spec 이 구독해 재설계(`spec.replan`).
 
 ---
 

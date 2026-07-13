@@ -297,6 +297,29 @@
   .bind-legend .bl b { color: var(--ink); }
   .bind-legend .bl .n { position: absolute; left: 0; top: 0; font-family: var(--font-mono); font-weight: 700; color: var(--hermes); font-size: 12px; }
 
+  /* ---- worked example timeline (§08) ---- */
+  .wex { margin-top: 22px; }
+  .wex-step { display: grid; grid-template-columns: 34px 1fr; gap: 14px; }
+  .wex-rail { display: flex; flex-direction: column; align-items: center; }
+  .wex-num { width: 30px; height: 30px; border-radius: 50%; background: var(--surface-2); border: 1.5px solid var(--line); font-family: var(--font-mono); font-weight: 700; font-size: 13px; color: var(--ink); display: flex; align-items: center; justify-content: center; flex: none; }
+  .wex-line { flex: 1; width: 2px; background: var(--line); margin: 4px 0; min-height: 14px; }
+  .wex-step:last-child .wex-line { display: none; }
+  .wex-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 13px 16px; margin-bottom: 14px; }
+  .wex-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .wex-actor { font-family: var(--font-mono); font-weight: 700; font-size: 12.5px; padding: 3px 9px; border-radius: 6px; }
+  .wex-actor.orch { color: var(--orch); background: var(--orch-tint); }
+  .wex-actor.spec { color: var(--spec); background: var(--spec-tint); }
+  .wex-actor.impl { color: var(--impl); background: var(--impl-tint); }
+  .wex-emit { font-family: var(--font-mono); font-size: 11px; color: var(--hermes); background: color-mix(in srgb, var(--hermes) 10%, transparent); padding: 2px 8px; border-radius: 6px; margin-left: auto; white-space: nowrap; }
+  .wex-emit.good { color: var(--good); background: color-mix(in srgb, var(--good) 12%, transparent); }
+  .wex-emit.bad { color: var(--bad); background: color-mix(in srgb, var(--bad) 12%, transparent); }
+  .wex-desc { font-size: 13.5px; color: var(--ink-soft); margin-top: 8px; line-height: 1.5; }
+  .wex-desc b { color: var(--ink); } .wex-desc code { font-family: var(--font-mono); font-size: 12px; color: var(--hermes); }
+  .wex-step.fail .wex-num { border-color: var(--bad); color: var(--bad); }
+  .wex-step.pass .wex-num { border-color: var(--good); color: var(--good); }
+  .wex-branch { margin-top: 8px; border: 1px dashed var(--bad); background: color-mix(in srgb, var(--bad) 6%, transparent); border-radius: 10px; padding: 12px 16px; font-size: 13px; color: var(--ink-soft); }
+  .wex-branch b { color: var(--bad); }
+
   /* ---- attach modes (§04): sub-component vs peer-stage ---- */
   .attach-modes { margin-top: 18px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); padding: 16px 18px; }
   .am-title { font-family: var(--font-mono); font-size: 12px; color: var(--ink); font-weight: 600; margin-bottom: 12px; }
@@ -440,7 +463,7 @@
 
 <header>
   <div class="head-inner">
-    <span class="eyebrow">Hermes · Agent Architecture · rev 0.3</span>
+    <span class="eyebrow">Hermes · Agent Architecture · rev 0.4</span>
     <h1>모놀리식 <span class="em">헤르메스</span>를<br>세 개의 협력 에이전트로 분리한다</h1>
     <p class="lede">
       지금의 헤르메스는 “판단·계획·구현·검증”을 한 몸으로 처리한다. 이를 분리해
@@ -1067,7 +1090,7 @@
 </section>
 
 <!-- ============ 7. 대안 ============ -->
-<section id="alts" style="border-bottom:none">
+<section id="alts">
   <div class="wrap">
     <div class="sec-head">
       <span class="eyebrow"><span class="num">07</span> &nbsp;Better Alternatives</span>
@@ -1115,9 +1138,95 @@
   </div>
 </section>
 
+<!-- ============ 8. 관통 시나리오 ============ -->
+<section id="wex" style="border-bottom:none">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow"><span class="num">08</span> &nbsp;Worked Example · 관통 시나리오</span>
+      <h2>한 사이클을 실제 메뉴 사례로 — 이벤트가 스스로 굴러가는 모습</h2>
+      <p>이 저장소의 실제 작업(주간 메뉴 재구성 + self-test userscript)으로 GOAL_LOOP 한 턴을 끝까지 따라간다.
+         목표 = <b>“주간 메뉴 v5 · 석식 다양성 강화”</b>. 각 단계의 완료가 곧 다음 워커를 깨우는 이벤트다.</p>
+    </div>
+
+    <div class="wex">
+      <div class="wex-step">
+        <div class="wex-rail"><span class="wex-num">1</span><span class="wex-line"></span></div>
+        <div class="wex-card">
+          <div class="wex-top"><span class="wex-actor orch">orch</span> 목표 주입 <span class="wex-emit">goal.created</span></div>
+          <div class="wex-desc">사용자 목표 <b>“v5 · 석식 다양성 강화”</b> 를 파이프라인에 넘긴다. 이후 orch 는 관여하지 않는다.</div>
+        </div>
+      </div>
+
+      <div class="wex-step">
+        <div class="wex-rail"><span class="wex-num">2</span><span class="wex-line"></span></div>
+        <div class="wex-card">
+          <div class="wex-top"><span class="wex-actor spec">spec</span> 문서작성 → 태스크 배포 <span class="wex-emit">task.created ×3</span></div>
+          <div class="wex-desc">목표를 검증가능 태스크로 분해하고 각 <b>수용기준·관통테스트</b>를 붙여 배포:
+            <b>T1</b> 석식 코너2 5종 재구성(수용: 육류 1종/일 · 원본 무중복) · <b>T2</b> 밋밋한 명칭 개선 · <b>T3</b> self-test 케이스 갱신.</div>
+        </div>
+      </div>
+
+      <div class="wex-step">
+        <div class="wex-rail"><span class="wex-num">3</span><span class="wex-line"></span></div>
+        <div class="wex-card">
+          <div class="wex-top"><span class="wex-actor impl">impl</span> 3개 태스크 병렬 수행 <span class="wex-emit">impl.done</span></div>
+          <div class="wex-desc">T1·T2·T3 을 독립적으로(fan-out) 구현하고, 각자 <b>유닛 셀프테스트</b>를 동봉해 산출물 제출.</div>
+        </div>
+      </div>
+
+      <div class="wex-step pass">
+        <div class="wex-rail"><span class="wex-num">✓</span><span class="wex-line"></span></div>
+        <div class="wex-card">
+          <div class="wex-top"><span class="wex-actor impl">test</span> 유닛 셀프테스트 통과</div>
+          <div class="wex-desc"><code>self-test</code>(mock 워크시트 → 기대 파싱값) 회귀검증 통과 — “파싱 로직은 안 깨졌다”.</div>
+        </div>
+      </div>
+
+      <div class="wex-step fail">
+        <div class="wex-rail"><span class="wex-num">✗</span><span class="wex-line"></span></div>
+        <div class="wex-card">
+          <div class="wex-top"><span class="wex-actor spec">verify·eval</span> 관통 자동검증 실패 <span class="wex-emit bad">verify.failed(구현)</span></div>
+          <div class="wex-desc">9대 원칙 자동검증에서 <b>“코너 내 재료중복 1건”</b> 적발. 기준이 아니라 구현 미달로 판정 →
+            <code>T1</code> 을 impl 로 되돌린다(같은 수용기준).</div>
+        </div>
+      </div>
+
+      <div class="wex-step">
+        <div class="wex-rail"><span class="wex-num">6</span><span class="wex-line"></span></div>
+        <div class="wex-card">
+          <div class="wex-top"><span class="wex-actor impl">impl</span> T1 재실행 <span class="wex-emit">impl.done</span></div>
+          <div class="wex-desc">중복 재료를 다른 재료·조리로 교체해 재제출. 되먹임은 특별 경로가 아니라 그냥 이벤트였다.</div>
+        </div>
+      </div>
+
+      <div class="wex-step pass">
+        <div class="wex-rail"><span class="wex-num">✓</span><span class="wex-line"></span></div>
+        <div class="wex-card">
+          <div class="wex-top"><span class="wex-actor spec">verify·eval</span> 관통 통과 → 평가 <span class="wex-emit good">verify.passed</span></div>
+          <div class="wex-desc"><b>verify</b>: 9대 + 신규 원칙 전부 통과. <b>eval</b>: v4 대비 석식 다양성 지표 ↑, 타 원칙 유지 → <b>개선</b>으로 판정.</div>
+        </div>
+      </div>
+
+      <div class="wex-step pass">
+        <div class="wex-rail"><span class="wex-num">▲</span></div>
+        <div class="wex-card">
+          <div class="wex-top"><span class="wex-actor spec">verify·eval</span> 승격 <span class="wex-emit good">→ v5</span></div>
+          <div class="wex-desc"><b>새 버전 v5 로 승격.</b> 다음 목표를 기다린다. 한 턴 동안 orch 는 1번 이후 아무 것도 하지 않았다.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wex-branch">
+      <b>분기 —</b> 만약 7단계 eval 이 <b>회귀</b>였다면(예: 다양성은 늘었지만 원가 지표가 악화) →
+      <span class="mono">eval.regressed</span> 발행 → v4 로 <b>롤백</b> + 회귀 백로그 적재 → spec 이 구독해 <b>재설계(spec.replan)</b>.
+      승격 대신 이 경로를 탄다.
+    </div>
+  </div>
+</section>
+
 <footer>
   <div class="wrap">
-    <span>HERMES · Agent Separation · rev 0.3 · 2026-07-13</span>
+    <span>HERMES · Agent Separation · rev 0.4 · 2026-07-13</span>
     <span>orch=dispatch · 이벤트 자기전파 · 컴포넌트 배속 · exec→test→verify·eval→v+1</span>
   </div>
 </footer>
