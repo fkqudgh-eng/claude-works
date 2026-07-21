@@ -37,6 +37,7 @@ jobs:
         run: |
           mkdir -p _site
           cp index.html _site/index.html
+          cp scores.html _site/scores.html
           cp og-image.jpg _site/og-image.jpg
 
       - name: Upload artifact

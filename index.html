@@ -206,6 +206,12 @@
   #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
   /* 숨김 유튜브 오디오 플레이어 (display:none은 일부 브라우저에서 재생 중단되므로 화면 밖으로) */
   #ytwrap{position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;}
+  .scorebtn{position:absolute;right:24px;bottom:calc(30px + env(safe-area-inset-bottom));z-index:15;
+    display:inline-flex;align-items:center;gap:6px;text-decoration:none;
+    background:var(--gold);color:#20140a;font-weight:800;font-size:12.5px;letter-spacing:.01em;
+    padding:9px 15px;border-radius:22px;box-shadow:0 5px 16px rgba(0,0,0,.34);}
+  .scorebtn svg{width:14px;height:14px;}
+  .scorebtn:active{transform:scale(.96);}
 </style>
 </head>
 <body>
@@ -285,7 +291,8 @@
       <div class="ti up" style="animation-delay:0.415s"><div class="tt"><b>오후 6:30</b><i>~7:30</i></div><div class="mk"></div><div class="tc"><div class="te">휴식 · 예배 준비</div></div></div>
       <div class="ti key up" style="animation-delay:0.46s"><div class="tt"><b>오후 7:30</b><i>~9:00</i></div><div class="mk"></div><div class="tc"><div class="te">주제 예배 ①</div></div></div>
     </div>
-  </section>
+    <a class="scorebtn up" href="scores.html" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l10-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="16" r="3"/></svg>찬양 악보</a>
+    </section>
 
   <section class="slide sched">
     <div class="daytag up"><b>DAY 2</b><span>둘째날 · 7.24(금)</span></div>
@@ -301,7 +308,8 @@
       <div class="ti up" style="animation-delay:0.46s"><div class="tt"><b>오후 8:00</b><i>~9:00</i></div><div class="mk"></div><div class="tc"><div class="te">휴식</div></div></div>
       <div class="ti key up" style="animation-delay:0.505s"><div class="tt"><b>오후 9:00</b><i>~11:00</i></div><div class="mk"></div><div class="tc"><div class="te">헌신 예배</div></div></div>
     </div>
-  </section>
+    <a class="scorebtn up" href="scores.html" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l10-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="16" r="3"/></svg>찬양 악보</a>
+    </section>
 
   <section class="slide sched">
     <div class="daytag up"><b>DAY 3</b><span>셋째날 · 7.25(토)</span></div>
@@ -315,7 +323,8 @@
       <div class="ti meal up" style="animation-delay:0.37s"><div class="tt"><b>오후 12:00</b><i>~1:30</i></div><div class="mk"></div><div class="tc"><div class="te">점심 식사</div><div class="tn">두부전골</div></div></div>
       <div class="ti up" style="animation-delay:0.415s"><div class="tt"><b>오후 3:00</b></div><div class="mk"></div><div class="tc"><div class="te">효성교회 도착</div></div></div>
     </div>
-  </section>
+    <a class="scorebtn up" href="scores.html" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l10-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="16" r="3"/></svg>찬양 악보</a>
+    </section>
 
   <!-- 12 GIFT -->
   <section class="slide gift">
