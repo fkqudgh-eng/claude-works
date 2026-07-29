@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CloudCast 메뉴보드 자동기입 — 설치 & 사용 가이드</title>
+<style>
+  :root{
+    --ink:#10262a; --ink-soft:#3d565b; --ink-faint:#6d8388;
+    --paper:#f7fbfc; --card:#ffffff; --line:#dbe8ea; --line-soft:#eaf2f3;
+    --teal-deep:#00838f; --teal:#00bcd4; --teal-wash:#e9f7f9;
+    --amber:#9a6a00; --amber-wash:#fbf3df; --amber-line:#e9d29a;
+    --danger:#b3261e; --good:#1a7a4b;
+    --shadow:0 1px 2px rgba(16,38,42,.05),0 8px 28px rgba(16,38,42,.07);
+    --radius:14px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --ink:#e8f1f2; --ink-soft:#a8bec2; --ink-faint:#7d969b;
+      --paper:#0c1618; --card:#121f22; --line:#22383c; --line-soft:#1a2c2f;
+      --teal-deep:#3fd0dd; --teal:#22b6c6; --teal-wash:#0f2b30;
+      --amber:#e2b862; --amber-wash:#2a2312; --amber-line:#4a3d1c;
+      --danger:#f2867f; --good:#5cc48c;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 34px rgba(0,0,0,.45);
+    }
+  }
+  :root[data-theme="light"]{
+    --ink:#10262a; --ink-soft:#3d565b; --ink-faint:#6d8388;
+    --paper:#f7fbfc; --card:#ffffff; --line:#dbe8ea; --line-soft:#eaf2f3;
+    --teal-deep:#00838f; --teal:#00bcd4; --teal-wash:#e9f7f9;
+    --amber:#9a6a00; --amber-wash:#fbf3df; --amber-line:#e9d29a;
+    --danger:#b3261e; --good:#1a7a4b;
+    --shadow:0 1px 2px rgba(16,38,42,.05),0 8px 28px rgba(16,38,42,.07);
+  }
+  :root[data-theme="dark"]{
+    --ink:#e8f1f2; --ink-soft:#a8bec2; --ink-faint:#7d969b;
+    --paper:#0c1618; --card:#121f22; --line:#22383c; --line-soft:#1a2c2f;
+    --teal-deep:#3fd0dd; --teal:#22b6c6; --teal-wash:#0f2b30;
+    --amber:#e2b862; --amber-wash:#2a2312; --amber-line:#4a3d1c;
+    --danger:#f2867f; --good:#5cc48c;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 34px rgba(0,0,0,.45);
+  }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:"Pretendard","Pretendard Variable",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",Roboto,sans-serif;
+    font-size:16px; line-height:1.68; letter-spacing:-.01em;
+    -webkit-font-smoothing:antialiased;
+  }
+  code,kbd,.mono{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"D2Coding",monospace}
+
+  .wrap{max-width:760px; margin:0 auto; padding:0 22px}
+
+  /* ── Header ── */
+  header{
+    padding:56px 0 30px;
+    border-bottom:1px solid var(--line);
+    background:
+      radial-gradient(120% 90% at 100% 0%, var(--teal-wash) 0%, transparent 58%);
+  }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size:12px; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--teal-deep); margin:0 0 16px;
+  }
+  .eyebrow .dot{width:8px;height:8px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 4px var(--teal-wash)}
+  h1{
+    font-size:clamp(28px,5.2vw,42px); line-height:1.14; margin:0 0 14px;
+    font-weight:800; letter-spacing:-.03em; text-wrap:balance;
+  }
+  .lede{font-size:17px; color:var(--ink-soft); margin:0; max-width:56ch}
+  .meta{
+    display:flex; flex-wrap:wrap; gap:8px; margin-top:22px;
+  }
+  .chip{
+    display:inline-flex; align-items:center; gap:7px;
+    font-size:12.5px; font-weight:600; padding:6px 11px; border-radius:999px;
+    background:var(--card); border:1px solid var(--line); color:var(--ink-soft);
+  }
+  .chip b{color:var(--teal-deep); font-weight:800}
+  .chip.ver{background:var(--teal-deep); border-color:var(--teal-deep); color:#fff}
+  :root[data-theme="dark"] .chip.ver, @media (prefers-color-scheme:dark){.chip.ver{color:#06181b}}
+
+  /* ── Sections ── */
+  main{padding:14px 0 40px}
+  .sec-label{
+    font-size:12px; font-weight:800; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-faint); margin:38px 0 4px;
+    display:flex; align-items:center; gap:12px;
+  }
+  .sec-label::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  /* ── Steps ── */
+  ol.steps{list-style:none; margin:18px 0 0; padding:0; counter-reset:step}
+  ol.steps>li{
+    counter-increment:step;
+    position:relative; padding:20px 20px 20px 66px;
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:var(--shadow); margin-bottom:14px;
+  }
+  ol.steps>li::before{
+    content:counter(step);
+    position:absolute; left:18px; top:18px;
+    width:34px; height:34px; border-radius:10px;
+    display:grid; place-items:center;
+    font-weight:800; font-size:15px; font-variant-numeric:tabular-nums;
+    color:#fff; background:linear-gradient(150deg,var(--teal) 0%,var(--teal-deep) 100%);
+    box-shadow:0 3px 8px rgba(0,131,143,.35);
+  }
+  :root[data-theme="dark"] ol.steps>li::before{color:#06181b}
+  ol.steps h3{margin:2px 0 6px; font-size:18px; font-weight:700; letter-spacing:-.02em}
+  ol.steps p{margin:0 0 6px; color:var(--ink-soft)}
+  ol.steps p:last-child{margin-bottom:0}
+  ol.steps ul{margin:8px 0 0; padding-left:18px; color:var(--ink-soft)}
+  ol.steps ul li{margin:3px 0}
+
+  a{color:var(--teal-deep); text-decoration:none; border-bottom:1px solid color-mix(in srgb,var(--teal-deep) 35%,transparent)}
+  a:hover{border-bottom-color:var(--teal-deep)}
+  a:focus-visible,button:focus-visible{outline:2px solid var(--teal);outline-offset:2px;border-radius:4px}
+
+  code{
+    font-size:.9em; padding:1.5px 6px; border-radius:6px;
+    background:var(--teal-wash); color:var(--teal-deep);
+    border:1px solid color-mix(in srgb,var(--teal-deep) 18%,transparent);
+    word-break:break-all;
+  }
+  kbd{
+    font-size:.82em; font-weight:600; padding:2px 7px; border-radius:6px;
+    background:var(--card); border:1px solid var(--line); border-bottom-width:2px;
+    color:var(--ink); white-space:nowrap;
+  }
+
+  /* ── Callouts ── */
+  .note{
+    border:1px solid var(--line); border-left:4px solid var(--teal-deep);
+    background:var(--card); border-radius:12px; padding:15px 17px; margin:14px 0;
+    box-shadow:var(--shadow);
+  }
+  .note.warn{border-left-color:var(--amber); background:var(--amber-wash); border-color:var(--amber-line)}
+  .note .nt{
+    display:flex; align-items:center; gap:8px;
+    font-weight:800; font-size:13px; letter-spacing:.02em; margin:0 0 6px;
+  }
+  .note.warn .nt{color:var(--amber)}
+  .note .nt svg{width:17px;height:17px;flex:none}
+  .note p{margin:0; color:var(--ink-soft); font-size:14.5px}
+  .note.warn p{color:color-mix(in srgb,var(--amber) 65%,var(--ink))}
+
+  /* ── Feature highlight (v4.4) ── */
+  .feature{
+    margin:18px 0 4px; padding:22px; border-radius:var(--radius);
+    background:linear-gradient(155deg,var(--teal-wash) 0%,var(--card) 72%);
+    border:1px solid color-mix(in srgb,var(--teal-deep) 22%,var(--line));
+    box-shadow:var(--shadow);
+  }
+  .feature .tag{
+    display:inline-block; font-size:11.5px; font-weight:800; letter-spacing:.08em;
+    text-transform:uppercase; color:#fff; background:var(--teal-deep);
+    padding:4px 9px; border-radius:6px; margin-bottom:12px;
+  }
+  :root[data-theme="dark"] .feature .tag{color:#06181b}
+  .feature h3{margin:0 0 8px; font-size:19px; letter-spacing:-.02em}
+  .feature p{margin:0 0 10px; color:var(--ink-soft)}
+  .feature .demo{
+    margin-top:14px; border-radius:10px; overflow:hidden;
+    border:1px solid var(--line); background:var(--card);
+    font-size:13.5px;
+  }
+  .feature .demo .dhead{
+    background:var(--teal-deep); color:#fff; font-weight:700; padding:8px 12px; font-size:13px;
+  }
+  :root[data-theme="dark"] .feature .demo .dhead{color:#06181b}
+  .drow{display:flex; align-items:center; gap:11px; padding:9px 12px; border-top:1px solid var(--line-soft)}
+  .drow .cb{width:17px;height:17px;border-radius:4px;border:2px solid var(--teal-deep);flex:none;display:grid;place-items:center}
+  .drow .cb.on{background:var(--teal-deep)}
+  .drow .cb.on::after{content:"✓";color:#fff;font-size:11px;font-weight:900;line-height:1}
+  :root[data-theme="dark"] .drow .cb.on::after{color:#06181b}
+  .drow .cb.off{border-color:var(--ink-faint)}
+  .drow .corner{font-weight:700; min-width:52px}
+  .drow .val{color:var(--ink-soft); flex:1; min-width:0}
+  .drow.skip{opacity:.6}
+  .drow .badge{font-size:11px; font-weight:700; padding:2px 7px; border-radius:5px; white-space:nowrap}
+  .badge.fill{background:var(--teal-wash); color:var(--teal-deep)}
+  .badge.keep{background:var(--line-soft); color:var(--ink-faint)}
+
+  /* ── Trouble table ── */
+  .tbl-scroll{overflow-x:auto; border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); margin-top:16px}
+  table{border-collapse:collapse; width:100%; min-width:520px; font-size:14.5px; background:var(--card)}
+  th,td{text-align:left; padding:12px 15px; vertical-align:top}
+  thead th{background:var(--teal-wash); color:var(--teal-deep); font-weight:800; font-size:12.5px; letter-spacing:.03em; text-transform:uppercase}
+  tbody tr+tr td{border-top:1px solid var(--line-soft)}
+  td:first-child{font-weight:700; white-space:nowrap; color:var(--ink)}
+
+  /* ── Footer ── */
+  footer{border-top:1px solid var(--line); padding:26px 0 48px; color:var(--ink-faint); font-size:13px}
+  footer .fname{color:var(--ink-soft)}
+  footer b{color:var(--ink)}
+
+  @media (max-width:480px){
+    header{padding:40px 0 24px}
+    ol.steps>li{padding:18px 16px 18px 16px}
+    ol.steps>li::before{position:static; margin-bottom:10px}
+    ol.steps>li{padding-left:16px}
+  }
+  @media (prefers-reduced-motion:no-preference){
+    a,button{transition:border-color .15s ease}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <p class="eyebrow"><span class="dot"></span> Tampermonkey 유저스크립트</p>
+    <h1>CloudCast 메뉴보드 자동기입<br>설치 &amp; 사용 가이드</h1>
+    <p class="lede">주간메뉴표 <code>.xlsx</code> 파일을 올리면 보드명을 읽어 끼니·요일·코너를 자동으로 파악하고, 미리보기에서 <b>원하는 코너만 골라</b> 메뉴보드에 채워 넣습니다.</p>
+    <div class="meta">
+      <span class="chip ver">버전 v4.4</span>
+      <span class="chip"><b>파일</b> cloudcast-menu-autofill.user.js</span>
+      <span class="chip"><b>대상</b> apps.cloud-cast.com/menuboard</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <p class="sec-label">준비물</p>
+  <div class="note">
+    <p class="nt" style="color:var(--teal-deep)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.9 4.9l2.9 2.9M16.2 16.2l2.9 2.9M2 12h4M18 12h4M4.9 19.1l2.9-2.9M16.2 7.8l2.9-2.9"/></svg>
+      한 번만 준비하면 됩니다
+    </p>
+    <p><b>Tampermonkey 확장 프로그램</b> — Chrome · Edge · Whale 등 크로미움 계열 브라우저에서 동작합니다. 각 브라우저 웹스토어에서 <em>Tampermonkey</em>를 검색해 설치하세요. (Firefox도 지원)</p>
+  </div>
+
+  <p class="sec-label">설치하기</p>
+  <ol class="steps">
+    <li>
+      <h3>Tampermonkey 설치</h3>
+      <p>브라우저 확장 스토어에서 <b>Tampermonkey</b>를 설치합니다. 설치 후 주소창 오른쪽에 검은·회색 아이콘이 보이면 준비 완료입니다.</p>
+    </li>
+    <li>
+      <h3>스크립트 파일 열기</h3>
+      <p>전달받은 <code>cloudcast-menu-autofill.user.js</code> 파일을 브라우저 창으로 <b>드래그해서 열거나</b>, 파일 경로를 주소창에 붙여 넣습니다.</p>
+      <p>Tampermonkey가 자동으로 설치 화면을 띄웁니다. 없다면 Tampermonkey 아이콘 → <kbd>새 스크립트 만들기</kbd>에 파일 내용을 붙여 넣고 <kbd>Ctrl</kbd>+<kbd>S</kbd> 로 저장해도 됩니다.</p>
+    </li>
+    <li>
+      <h3>설치 버튼 클릭</h3>
+      <p>설치 화면 상단의 <kbd>설치</kbd>(Install) 버튼을 누릅니다. 엑셀 해석용 라이브러리(SheetJS)는 스크립트가 <code>@require</code>로 자동으로 불러오므로 별도 설치가 필요 없습니다.</p>
+    </li>
+    <li>
+      <h3>메뉴보드 편집 화면 열기</h3>
+      <p><code>apps.cloud-cast.com</code>에서 메뉴보드 편집 페이지에 들어가면, 화면 <b>왼쪽 아래에 &ldquo;메뉴 자동기입&rdquo; 패널</b>이 나타납니다.</p>
+      <ul>
+        <li>패널 제목줄을 드래그하면 위치를 옮길 수 있습니다.</li>
+        <li>제목줄을 <b>더블클릭</b>하면 self-test가 실행돼 파싱 로직이 정상인지 즉석 점검합니다.</li>
+      </ul>
+    </li>
+  </ol>
+
+  <p class="sec-label">사용하기</p>
+  <ol class="steps">
+    <li>
+      <h3>주간메뉴표 xlsx 선택</h3>
+      <p>패널의 <kbd>주간메뉴표</kbd> 파일 선택에서 이번 주 <code>.xlsx</code>를 고릅니다. 파일 아래에 <b>양식 검증 결과</b>(예: <code>양식 ✓ 8/8</code>)와 인식된 시트명이 표시됩니다. 여러 시트 중 본표를 자동으로 골라냅니다.</p>
+    </li>
+    <li>
+      <h3>끼니 · 요일 · 코너 확인</h3>
+      <p>보드명에서 <b>끼니 / 요일 / 코너</b>가 자동 감지되어 <code>감지: 중식 / 월요일 / 코너1·코너2</code> 처럼 표시됩니다. 자동 인식이 빗나가면 셀렉트에서 직접 지정하거나, 코너를 <kbd>직접 지정</kbd> 모드로 바꿔 슬롯별로 고를 수 있습니다.</p>
+    </li>
+    <li>
+      <h3>미리보기 &rarr; 코너 선택 &rarr; 기입</h3>
+      <p><kbd>미리보기 → 기입</kbd>을 누르면 각 코너의 <b>신규 값과 기존 값을 나란히</b> 보여주는 표가 뜹니다. 채울 코너만 체크한 뒤 <kbd>적용</kbd>을 누르세요. (아래 참고)</p>
+    </li>
+  </ol>
+
+  <div class="feature">
+    <span class="tag">v4.4 새 기능</span>
+    <h3>코너별로 골라서 기입</h3>
+    <p>2메뉴 보드에서 <b>두 코너를 모두 덮어쓰지 않고</b>, 원하는 코너만 선택해 채울 수 있습니다. 체크를 끈 코너는 이름·설명은 물론 플러스바까지 <b>기존 값 그대로 보존</b>되고, 보드 템플릿(1메뉴/2메뉴)도 바뀌지 않습니다.</p>
+    <div class="demo" role="img" aria-label="미리보기 예시: 코너1은 체크되어 기입, 코너2는 체크 해제되어 보존">
+      <div class="dhead">미리보기 — 중식 월요일 · 코너1·코너2</div>
+      <div class="drow">
+        <span class="cb on" aria-hidden="true"></span>
+        <span class="corner">코너1</span>
+        <span class="val">열무김치냉국수 · 추가밥 · 갈비만두 …</span>
+        <span class="badge fill">기입</span>
+      </div>
+      <div class="drow skip">
+        <span class="cb off" aria-hidden="true"></span>
+        <span class="corner">코너2</span>
+        <span class="val">(기존 메뉴 그대로 유지)</span>
+        <span class="badge keep">보존</span>
+      </div>
+    </div>
+    <p style="margin:12px 0 0; font-size:13.5px; color:var(--ink-faint)">헤더 체크박스로 전체 선택/해제, 전부 해제하면 적용 버튼이 비활성화됩니다.</p>
+  </div>
+
+  <p class="sec-label">알아두기</p>
+
+  <div class="note warn">
+    <p class="nt">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+      저장(Save)은 사람이 직접
+    </p>
+    <p>이 스크립트는 입력칸을 채우기만 하고 <b>Save 버튼은 절대 누르지 않습니다.</b> 내용을 눈으로 확인한 뒤 CloudCast의 저장 버튼을 직접 눌러 확정하세요.</p>
+  </div>
+
+  <div class="note">
+    <p class="nt" style="color:var(--good)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l1.4-1.4L9 11.2l9.6-9.6L20 3z"/><path d="M20 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>
+      안전장치
+    </p>
+    <p><b>되돌리기</b> — 적용 직후 <kbd>되돌리기</kbd> 버튼으로 직전 상태로 복구합니다(여러 단계 저장). <b>양식 검증</b> — 다른 양식의 파일이면 <code>양식 ✗</code>로 경고하고 기입을 막습니다. <b>덮어씀 표시</b> — 미리보기에서 기존 값이 있는 칸은 노란색 &ldquo;덮어씀⚠&rdquo;으로 강조합니다.</p>
+  </div>
+
+  <p class="sec-label">잘 안 될 때</p>
+  <div class="tbl-scroll">
+    <table>
+      <thead>
+        <tr><th>증상</th><th>확인 / 해결</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>패널이 안 보임</td>
+          <td>주소가 <code>apps.cloud-cast.com/menuboard/menu/…</code> 편집 화면인지 확인하세요. Tampermonkey 아이콘에서 스크립트가 <b>켜짐</b> 상태인지도 점검합니다.</td>
+        </tr>
+        <tr>
+          <td>양식 ✗ 표시</td>
+          <td>선택한 파일이 이번 주 <b>주간메뉴표 원본</b>인지, 보존식 등 다른 시트를 넣지 않았는지 확인하세요. 코너 라벨(코너1·2·3) 위치가 바뀐 새 양식이면 프로파일 조정이 필요합니다.</td>
+        </tr>
+        <tr>
+          <td>끼니/요일/코너 인식 실패</td>
+          <td>패널의 셀렉트에서 끼니·요일을 직접 지정하고, 코너는 <kbd>직접 지정</kbd> 모드로 슬롯마다 골라 주세요.</td>
+        </tr>
+        <tr>
+          <td>xlsx 파싱 실패</td>
+          <td>파일이 <code>.xlsx</code>인지(구형 <code>.xls</code> 아님) 확인하고, 네트워크가 SheetJS(<code>cdn.sheetjs.com</code>) 로드를 막지 않는지 점검하세요.</td>
+        </tr>
+        <tr>
+          <td>메뉴 인풋을 못 찾음</td>
+          <td>편집 화면이 완전히 로드된 뒤 실행하세요. 템플릿(1메뉴/2메뉴)이 렌더링될 때까지 잠시 기다렸다 다시 시도합니다.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</main>
+
+<footer class="wrap">
+  <p><b>CloudCast 메뉴보드 자동기입</b> · <span class="fname">cloudcast-menu-autofill.user.js</span> · v4.4<br>
+  업데이트가 있으면 스크립트 파일을 새 내용으로 교체한 뒤 Tampermonkey에서 저장하면 됩니다.</p>
+</footer>
+</body>
+</html>
